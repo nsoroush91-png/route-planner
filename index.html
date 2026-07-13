@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Route Planner Demo v6</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+:root{--bg:#f4f7fb;--card:#fff;--text:#172033;--muted:#667085;--blue:#2563eb;--green:#059669;--red:#dc2626;--line:#dbe2ea}
+*{box-sizing:border-box} body{margin:0;font-family:Arial,Segoe UI,sans-serif;background:var(--bg);color:var(--text)}
+header{max-width:1350px;margin:auto;padding:22px 20px 10px} h1{margin:0 0 6px} p{margin:0;color:var(--muted)}
+.layout{max-width:1350px;margin:auto;padding:10px 20px 35px;display:grid;grid-template-columns:360px 1fr;gap:18px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:0 10px 30px rgba(15,23,42,.08)}
+.sidebar{padding:18px} label{display:block;font-weight:700;margin:13px 0 7px}
+input,select,button{width:100%;padding:11px;border:1px solid var(--line);border-radius:10px;font-size:14px}
+button{border:none;background:var(--blue);color:white;font-weight:800;cursor:pointer}.green{background:var(--green)}.secondary{background:#eef2ff;color:#1e40af}.red{background:#fff1f2;color:#b42318;border:1px solid #fecdd3}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:9px}.mode{display:flex;gap:8px}.mode button{background:#eef2ff;color:#334155}.mode button.active{background:var(--blue);color:white}
+.note,.message{font-size:12px;line-height:1.45;padding:10px;border-radius:10px;margin-top:10px}.note{background:#f8fafc;color:var(--muted);border:1px solid var(--line)}.message{display:none}.warn{background:#fff7ed;color:#9a3412}.ok{background:#f0fdf4;color:#166534}.err{background:#fff1f0;color:#b42318}
+#map{height:535px;border-radius:18px}.results{margin-top:16px;padding:17px}.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}.tab{width:auto;background:#eef2ff;color:#334155}.tab.active{background:var(--blue);color:white}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:12px}.stat{padding:12px;border:1px solid var(--line);border-radius:12px;background:#fafcff}.stat b{display:block;font-size:20px;margin-top:3px}
+table{width:100%;border-collapse:collapse}th,td{padding:9px;border-bottom:1px solid var(--line);text-align:left;font-size:13px}th{background:#f8fafc}
+.list{max-height:220px;overflow:auto;margin-top:10px}.item{padding:8px 0;border-bottom:1px solid var(--line);font-size:12px}.item b{display:block}
+#printTitle{display:none}
+@media(max-width:900px){.layout{grid-template-columns:1fr}.stats{grid-template-columns:1fr 1fr}}
+@media print{header,.sidebar,#map,.tabs,.actions{display:none!important}.layout{display:block;padding:0}.results{box-shadow:none;border:none}.card{box-shadow:none}#printTitle{display:block;font-size:23px;font-weight:800;margin-bottom:12px}}
+</style>
+</head>
+<body>
+<header><h1>Optimized Route Planner</h1><p>Select a depot and stops, then build balanced daily routes.</p></header>
+<div class="layout">
+<aside class="card sidebar">
+  <div class="note"><b>Steps:</b> Set the red starting point, add blue stops, select days and preferred stops per day, then optimize. Every day starts and ends at the same depot.</div>
+
+  <div class="mode">
+    <button id="modeDepot">Set starting point</button>
+    <button id="modeStop" class="active">Add stops</button>
+  </div>
+
+  <label>Search address</label>
+  <input id="searchText" placeholder="Phoenix Zoo, Phoenix, AZ">
+  <div class="row"><button id="searchBtn">Search</button><button id="addSearchBtn" class="green" disabled>Add result</button></div>
+  <div id="searchStatus" class="note" style="display:none"></div>
+
+  <label>Number of days</label>
+  <input id="daysInput" type="number" min="1" max="14" value="2">
+
+  <label>Preferred stops per day</label>
+  <input id="perDayInput" type="number" min="1" max="30" value="8">
+
+  <label>First route weekday</label>
+  <select id="weekdayInput">
+    <option value="1">Monday</option><option value="2">Tuesday</option><option value="3">Wednesday</option>
+    <option value="4">Thursday</option><option value="5">Friday</option><option value="6">Saturday</option><option value="0">Sunday</option>
+  </select>
+
+  <label>Start time</label><input id="startInput" type="time" value="06:00">
+  <label>Minutes at each stop</label>
+  <select id="serviceInput"><option>20</option><option>30</option><option selected>40</option><option>60</option></select>
+
+  <div id="capacityMessage" class="message warn"></div>
+  <button id="optimizeBtn" class="green" style="margin-top:12px">Optimize routes</button>
+  <div id="runMessage" class="message ok"></div>
+
+  <div class="row"><button id="clearStops" class="secondary">Clear stops</button><button id="clearAll" class="red">Clear all</button></div>
+
+  <label>Selected points</label><div id="pointList" class="list"></div>
+</aside>
+
+<main>
+  <div id="map" class="card"></div>
+  <section class="card results">
+    <div id="printTitle"></div>
+    <div id="tabs" class="tabs"></div>
+    <div class="stats">
+      <div class="stat">Stops<b id="sStops">—</b></div>
+      <div class="stat">Driving time<b id="sDrive">—</b></div>
+      <div class="stat">Finish time<b id="sFinish">—</b></div>
+      <div class="stat">Improvement<b id="sImprove">—</b></div>
+    </div>
+    <div class="row actions"><button id="mapsBtn">Open in Google Maps</button><button id="printBtn" class="green">Print selected day</button></div>
+    <div style="overflow:auto;margin-top:12px"><table><thead><tr><th>#</th><th>Location</th><th>Arrival</th><th>Departure</th><th>Travel</th></tr></thead><tbody id="tbody"></tbody></table></div>
+  </section>
+</main>
+</div>
+
+<script>
+'use strict';
+
+const $ = id => document.getElementById(id);
+const map = L.map('map').setView([33.49,-111.99],11);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap contributors'}).addTo(map);
+
+const els = {
+  modeDepot:$('modeDepot'), modeStop:$('modeStop'), searchText:$('searchText'), searchBtn:$('searchBtn'),
+  addSearchBtn:$('addSearchBtn'), searchStatus:$('searchStatus'), days:$('daysInput'), perDay:$('perDayInput'),
+  weekday:$('weekdayInput'), start:$('startInput'), service:$('serviceInput'), capacity:$('capacityMessage'),
+  optimize:$('optimizeBtn'), run:$('runMessage'), clearStops:$('clearStops'), clearAll:$('clearAll'),
+  pointList:$('pointList'), tabs:$('tabs'), sStops:$('sStops'), sDrive:$('sDrive'),
+  sFinish:$('sFinish'), sImprove:$('sImprove'), maps:$('mapsBtn'), print:$('printBtn'),
+  printTitle:$('printTitle'), tbody:$('tbody')
+};
+
+let mode='stop', depot=null, depotMarker=null, stops=[], searchResult=null, searchMarker=null;
+let plans=[], selected=0, routeLine=null;
+
+const mkIcon=color=>new L.Icon({
+  iconUrl:`https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-${color}.png`,
+  shadowUrl:'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+  iconSize:[25,41],iconAnchor:[12,41],popupAnchor:[1,-34],shadowSize:[41,41]
+});
+const redIcon=mkIcon('red'), blueIcon=mkIcon('blue'), greenIcon=mkIcon('green');
+
+function setMode(v){mode=v;els.modeDepot.classList.toggle('active',v==='depot');els.modeStop.classList.toggle('active',v==='stop');}
+els.modeDepot.onclick=()=>setMode('depot'); els.modeStop.onclick=()=>setMode('stop');
+
+async function reverse(lat,lon){
+  try{
+    const r=await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`);
+    const d=await r.json(); return d.display_name||`${lat.toFixed(5)}, ${lon.toFixed(5)}`;
+  }catch{return `${lat.toFixed(5)}, ${lon.toFixed(5)}`;}
+}
+async function addPoint(lat,lon,address){
+  const addr=address||await reverse(lat,lon);
+  if(mode==='depot'){
+    if(depotMarker)map.removeLayer(depotMarker);
+    depot={lat,lon,address:addr};
+    depotMarker=L.marker([lat,lon],{icon:redIcon,draggable:true}).addTo(map).bindPopup(`<b>Start / return</b><br>${addr}`);
+    depotMarker.on('dragend',async e=>{const p=e.target.getLatLng();depot.lat=p.lat;depot.lon=p.lng;depot.address=await reverse(p.lat,p.lng);invalidate();renderPoints();});
+    setMode('stop');
+  }else{
+    const s={id:crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random()),lat,lon,address:addr,marker:null};
+    s.marker=L.marker([lat,lon],{icon:blueIcon,draggable:true}).addTo(map);
+    s.marker.on('dragend',async e=>{const p=e.target.getLatLng();s.lat=p.lat;s.lon=p.lng;s.address=await reverse(p.lat,p.lng);invalidate();renderPoints();});
+    stops.push(s);
+  }
+  invalidate();renderPoints();updateCapacity();
+}
+map.on('click',e=>addPoint(e.latlng.lat,e.latlng.lng));
+
+els.searchBtn.onclick=async()=>{
+  const q=els.searchText.value.trim(); if(!q)return;
+  els.searchStatus.style.display='block';els.searchStatus.textContent='Searching...';els.addSearchBtn.disabled=true;
+  try{
+    const r=await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=us&q=${encodeURIComponent(q)}`);
+    const a=await r.json();
+    if(!a.length){els.searchStatus.textContent='No result found.';return;}
+    searchResult={lat:+a[0].lat,lon:+a[0].lon,address:a[0].display_name};
+    if(searchMarker)map.removeLayer(searchMarker);
+    searchMarker=L.marker([searchResult.lat,searchResult.lon],{icon:greenIcon}).addTo(map).bindPopup(searchResult.address).openPopup();
+    map.setView([searchResult.lat,searchResult.lon],15);
+    els.searchStatus.textContent='Result found. Click Add result.';els.addSearchBtn.disabled=false;
+  }catch{els.searchStatus.textContent='Search failed. Check internet connection.';}
+};
+els.searchText.addEventListener('keydown',e=>{if(e.key==='Enter')els.searchBtn.click();});
+els.addSearchBtn.onclick=()=>{if(!searchResult)return;addPoint(searchResult.lat,searchResult.lon,searchResult.address);if(searchMarker)map.removeLayer(searchMarker);searchMarker=null;searchResult=null;els.addSearchBtn.disabled=true;};
+
+function removeStop(id){const i=stops.findIndex(s=>s.id===id);if(i<0)return;map.removeLayer(stops[i].marker);stops.splice(i,1);invalidate();renderPoints();updateCapacity();}
+window.removeStop=removeStop;
+
+function renderPoints(){
+  let h=depot?`<div class="item"><b>Start / return</b>${depot.address}</div>`:`<div class="item">No starting point selected.</div>`;
+  stops.forEach((s,i)=>h+=`<div class="item"><b>Stop ${i+1}</b>${s.address}<br><button style="width:auto;padding:4px 8px;margin-top:4px;background:#fff1f2;color:#b42318" onclick="removeStop('${s.id}')">Remove</button></div>`);
+  els.pointList.innerHTML=h;
+}
+function invalidate(){plans=[];selected=0;if(routeLine){map.removeLayer(routeLine);routeLine=null;}els.tabs.innerHTML='';els.tbody.innerHTML='';['sStops','sDrive','sFinish','sImprove'].forEach(id=>$(id).textContent='—');}
+
+function updateCapacity(){
+  const n=stops.length,d=Math.max(1,+els.days.value||1),p=Math.max(1,+els.perDay.value||1);
+  if(!n){els.capacity.style.display='none';return;}
+  const base=Math.floor(n/d),extra=n%d,max=base+(extra?1:0);
+  if(d>n){els.capacity.style.display='block';els.capacity.textContent=`You selected ${d} days for only ${n} stops.`;return;}
+  if(d*p===n){els.capacity.style.display='none';return;}
+  els.capacity.style.display='block';
+  if(d*p<n) els.capacity.innerHTML=`<b>Warning:</b> ${n} stops do not fit into ${d} days at ${p} stops per day. The planner will assign ${extra} day(s) with ${max} stops and ${d-extra} day(s) with ${base} stops.`;
+  else els.capacity.innerHTML=`<b>Note:</b> Capacity is larger than needed. Stops will be balanced as ${extra} day(s) with ${max} stops and ${d-extra} day(s) with ${base} stops.`;
+}
+els.days.oninput=updateCapacity;els.perDay.oninput=updateCapacity;
+
+function dist(a,b){const R=3958.7613,rad=x=>x*Math.PI/180,dl=rad(b.lat-a.lat),dn=rad(b.lon-a.lon),a1=rad(a.lat),a2=rad(b.lat);const h=Math.sin(dl/2)**2+Math.cos(a1)*Math.cos(a2)*Math.sin(dn/2)**2;return 2*R*Math.asin(Math.sqrt(h));}
+function dayName(x){return ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][x];}
+function factor(clock,wd){const h=clock/60,w=wd===0||wd===6;if(w){if(h<7)return 1.02;if(h<10)return 1.08;if(h<16)return 1.06;if(h<19)return 1.10;return 1.04;}if(h<6.5)return 1.04;if(h<7.5)return 1.14;if(h<9)return 1.30;if(h<11)return 1.16;if(h<15)return 1.10;if(h<18.5)return 1.28;return 1.08;}
+function travel(a,b,elapsed,start,wd){return ((dist(a,b)*1.22+.35)/33*60+2)*factor(start+elapsed,wd);}
+function cost(route,start,service,wd){let e=0,d=0,p=depot;for(const s of route){const t=travel(p,s,e,start,wd);d+=t;e+=t+service;p=s;}const back=travel(p,depot,e,start,wd);return{drive:d+back,elapsed:e+back};}
+function nearest(items,start,service,wd){const rem=[...items],r=[];let p=depot,e=0;while(rem.length){let bi=0,bv=Infinity;for(let i=0;i<rem.length;i++){const v=travel(p,rem[i],e,start,wd);if(v<bv){bv=v;bi=i;}}const n=rem.splice(bi,1)[0];r.push(n);e+=bv+service;p=n;}return r;}
+function routeMiles(r){if(!r.length)return 0;let v=dist(depot,r[0]);for(let i=0;i<r.length-1;i++)v+=dist(r[i],r[i+1]);return v+dist(r[r.length-1],depot);}
+function improve(route){let best=[...route],bc=routeMiles(best);for(let pass=0;pass<20;pass++){let changed=false;outer:for(let i=0;i<best.length-1;i++)for(let j=i+1;j<best.length;j++){const c=[...best.slice(0,i),...best.slice(i,j+1).reverse(),...best.slice(j+1)],cc=routeMiles(c);if(cc<bc-.0001){best=c;bc=cc;changed=true;break outer;}}if(!changed)break;}return best;}
+
+function balancedClusters(items,days){
+  const sorted=[...items].sort((a,b)=>a.lon-b.lon);
+  const base=Math.floor(items.length/days),extra=items.length%days,targets=Array.from({length:days},(_,i)=>base+(i<extra?1:0));
+  const groups=[];let pos=0;
+  for(let i=0;i<days;i++){groups.push(sorted.slice(pos,pos+targets[i]));pos+=targets[i];}
+  return groups;
+}
+
+async function optimize(){
+  els.run.style.display='block';els.run.className='message ok';els.run.textContent='Checking input...';
+  try{
+    if(!depot)throw new Error('Select a starting point first.');
+    if(!stops.length)throw new Error('Add at least one stop.');
+    const days=Math.max(1,+els.days.value||1);if(days>stops.length)throw new Error(`You selected ${days} days for only ${stops.length} stops.`);
+    const [h,m]=els.start.value.split(':').map(Number),start=h*60+m,service=+els.service.value,first=+els.weekday.value;
+    updateCapacity();
+    els.run.textContent=`Clustering ${stops.length} stops into ${days} days...`;
+    await new Promise(r=>setTimeout(r,25));
+    const groups=balancedClusters(stops,days);plans=[];
+    for(let i=0;i<groups.length;i++){
+      els.run.textContent=`Optimizing day ${i+1} of ${groups.length}...`;await new Promise(r=>setTimeout(r,15));
+      const wd=(first+i)%7,before=cost(groups[i],start,service,wd).drive;
+      const route=improve(nearest(groups[i],start,service,wd));
+      const after=cost(route,start,service,wd);
+      plans.push({day:i+1,weekday:wd,route,before,drive:after.drive,elapsed:after.elapsed});
+    }
+    selected=0;renderTabs();renderPlan();els.run.textContent='Optimization completed.';
+  }catch(e){els.run.className='message err';els.run.textContent=e.message;}
+}
+els.optimize.onclick=optimize;
+
+function renderTabs(){els.tabs.innerHTML=plans.map((p,i)=>`<button class="tab ${i===selected?'active':''}" onclick="selectPlan(${i})">Day ${i+1} · ${dayName(p.weekday)}</button>`).join('');}
+window.selectPlan=i=>{selected=i;renderTabs();renderPlan();};
+function fmt(x){x=Math.round(x)%1440;const h=Math.floor(x/60),m=x%60;return `${((h+11)%12)+1}:${String(m).padStart(2,'0')} ${h>=12?'PM':'AM'}`;}
+function renderPlan(){
+  const p=plans[selected],[h,m]=els.start.value.split(':').map(Number),start=h*60+m,service=+els.service.value;
+  let e=0,prev=depot,rows='';
+  p.route.forEach((s,i)=>{const t=travel(prev,s,e,start,p.weekday),arr=start+e+t,dep=arr+service;rows+=`<tr><td>${i+1}</td><td><b>${s.address.split(',')[0]}</b><br><small>${s.address}</small></td><td>${fmt(arr)}</td><td>${fmt(dep)}</td><td>${Math.round(t)} min</td></tr>`;e+=t+service;prev=s;});
+  const back=travel(prev,depot,e,start,p.weekday);rows+=`<tr><td>↩</td><td><b>Return to depot</b><br><small>${depot.address}</small></td><td>${fmt(start+e+back)}</td><td>—</td><td>${Math.round(back)} min</td></tr>`;
+  els.tbody.innerHTML=rows;els.sStops.textContent=p.route.length;els.sDrive.textContent=Math.round(p.drive)+' min';els.sFinish.textContent=fmt(start+p.elapsed);
+  const imp=p.before?Math.max(0,(p.before-p.drive)/p.before*100):0;els.sImprove.textContent=imp.toFixed(1)+'%';els.printTitle.textContent=`Day ${p.day} — ${dayName(p.weekday)} Route`;
+  if(routeLine)map.removeLayer(routeLine);routeLine=L.polyline([[depot.lat,depot.lon],...p.route.map(s=>[s.lat,s.lon]),[depot.lat,depot.lon]],{color:'#059669',weight:5}).addTo(map);map.fitBounds(routeLine.getBounds(),{padding:[25,25]});
+}
+els.maps.onclick=()=>{if(!plans.length)return alert('Optimize routes first.');const p=plans[selected],q=new URLSearchParams({api:'1',origin:`${depot.lat},${depot.lon}`,destination:`${depot.lat},${depot.lon}`,waypoints:p.route.map(s=>`${s.lat},${s.lon}`).join('|'),travelmode:'driving'});window.open('https://www.google.com/maps/dir/?'+q.toString(),'_blank');};
+els.print.onclick=()=>{if(!plans.length)return alert('Optimize routes first.');window.print();};
+els.clearStops.onclick=()=>{stops.forEach(s=>map.removeLayer(s.marker));stops=[];invalidate();renderPoints();updateCapacity();};
+els.clearAll.onclick=()=>{els.clearStops.click();if(depotMarker)map.removeLayer(depotMarker);depot=null;depotMarker=null;renderPoints();};
+renderPoints();
+</script>
+</body>
+</html>

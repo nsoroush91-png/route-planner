@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <title>Route Planner Demo v6</title>
+  <title>RoutePilot</title>
 
   <link
     rel="stylesheet"
@@ -15,7 +15,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-:root{--bg:#f4f7fb;--card:#fff;--text:#172033;--muted:#667085;--blue:#2563eb;--green:#059669;--red:#dc2626;--line:#dbe2ea}
+:root{--bg:#07111f;--card:#0f1b2d;--text:#edf4ff;--muted:#9fb0c7;--blue:#38bdf8;--green:#22d3a6;--red:#fb7185;--line:#24364d;--purple:#8b5cf6;--soft:#132238}
 *{box-sizing:border-box} body{margin:0;font-family:Arial,Segoe UI,sans-serif;background:var(--bg);color:var(--text)}
 header{max-width:1350px;margin:auto;padding:22px 20px 10px} h1{margin:0 0 6px} p{margin:0;color:var(--muted)}
 .layout{max-width:1350px;margin:auto;padding:10px 20px 35px;display:grid;grid-template-columns:360px 1fr;gap:18px}
@@ -37,15 +37,186 @@ table{width:100%;border-collapse:collapse}th,td{padding:9px;border-bottom:1px so
 
 @media(max-width:900px){.layout{grid-template-columns:1fr}.stats{grid-template-columns:1fr 1fr}}
 @media print{header,.sidebar,#map,.tabs,.actions{display:none!important}.layout{display:block;padding:0}.results{box-shadow:none;border:none}.card{box-shadow:none}#printTitle{display:block;font-size:23px;font-weight:800;margin-bottom:12px}}
+
+#loginScreen{
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:24px;
+  background:
+    radial-gradient(circle at top left, rgba(37,99,235,.18), transparent 38%),
+    radial-gradient(circle at bottom right, rgba(5,150,105,.16), transparent 38%),
+    var(--bg);
+}
+.login-card{
+  width:min(430px,100%);
+  background:#fff;
+  border:1px solid var(--line);
+  border-radius:22px;
+  padding:30px;
+  box-shadow:0 20px 55px rgba(15,23,42,.14);
+}
+.login-logo{
+  width:54px;height:54px;border-radius:15px;
+  display:grid;place-items:center;
+  background:linear-gradient(135deg,var(--blue),var(--green));
+  color:#fff;font-size:27px;font-weight:900;
+  margin-bottom:18px;
+}
+.login-card h1{margin:0 0 8px;font-size:28px}
+.login-card p{margin:0 0 20px;line-height:1.5}
+.login-card .row{margin-top:12px}
+#appScreen{display:none}
+.top-user-bar{
+  max-width:1350px;
+  margin:0 auto;
+  padding:10px 20px 0;
+  display:flex;
+  justify-content:flex-end;
+  align-items:center;
+  gap:10px;
+}
+.top-user-bar span{font-size:13px;color:var(--muted)}
+.top-user-bar button{width:auto;padding:8px 14px}
+
+
+body{
+  background:
+    radial-gradient(circle at 12% 8%, rgba(56,189,248,.18), transparent 30%),
+    radial-gradient(circle at 88% 90%, rgba(139,92,246,.16), transparent 28%),
+    linear-gradient(135deg,#07111f 0%,#0b1423 48%,#10182a 100%);
+}
+header h1{
+  background:linear-gradient(90deg,#7dd3fc,#22d3a6,#a78bfa);
+  -webkit-background-clip:text;
+  background-clip:text;
+  color:transparent;
+  letter-spacing:-.5px;
+}
+.card{
+  background:rgba(15,27,45,.92);
+  border:1px solid rgba(125,211,252,.16);
+  box-shadow:0 18px 55px rgba(0,0,0,.28);
+  backdrop-filter:blur(10px);
+}
+input,select{
+  background:#0a1626;
+  color:var(--text);
+  border:1px solid #2a4059;
+}
+input::placeholder{color:#72849a}
+button{
+  background:linear-gradient(135deg,#0ea5e9,#2563eb);
+  box-shadow:0 8px 22px rgba(14,165,233,.18);
+  transition:transform .15s ease,filter .15s ease,box-shadow .15s ease;
+}
+button:hover{
+  transform:translateY(-1px);
+  filter:brightness(1.06);
+  box-shadow:0 12px 26px rgba(14,165,233,.24);
+}
+.green{
+  background:linear-gradient(135deg,#10b981,#14b8a6);
+}
+.secondary{
+  background:#15243a;
+  color:#bae6fd;
+  border:1px solid #2d4663;
+}
+.red{
+  background:#301724;
+  color:#fda4af;
+  border:1px solid #653044;
+}
+.note{
+  background:#101d30;
+  color:#a8bad0;
+  border:1px solid #263b55;
+}
+.auth-panel,.project-panel{
+  background:linear-gradient(180deg,rgba(18,34,56,.96),rgba(12,25,43,.96));
+  border:1px solid rgba(125,211,252,.16);
+}
+.login-card{
+  background:
+    linear-gradient(180deg,rgba(15,27,45,.98),rgba(9,20,35,.98));
+  border:1px solid rgba(125,211,252,.24);
+  box-shadow:0 28px 80px rgba(0,0,0,.46);
+}
+.login-logo{
+  width:62px;
+  height:62px;
+  background:linear-gradient(135deg,#38bdf8,#22d3a6 52%,#8b5cf6);
+  box-shadow:0 12px 32px rgba(56,189,248,.28);
+  font-size:18px;
+  letter-spacing:-1px;
+}
+.login-card h1{
+  font-size:34px;
+  background:linear-gradient(90deg,#7dd3fc,#22d3a6,#a78bfa);
+  -webkit-background-clip:text;
+  background-clip:text;
+  color:transparent;
+}
+#map{
+  border:1px solid rgba(125,211,252,.18);
+  box-shadow:0 18px 55px rgba(0,0,0,.3);
+}
+.stat{
+  background:linear-gradient(180deg,#132238,#0e1b2d);
+  border:1px solid #263b55;
+}
+.stat b{color:#7dd3fc}
+th{background:#132238;color:#bae6fd}
+td{color:#dbeafe}
+.item{border-bottom:1px solid #263b55}
+.top-user-bar span{color:#9fb0c7}
+.tabs .tab{
+  background:#14243b;
+  color:#b8c8dd;
+  border:1px solid #27405d;
+}
+.tabs .tab.active{
+  background:linear-gradient(135deg,#0ea5e9,#2563eb);
+  color:white;
+}
+
 </style>
 </head>
 <body>
-<header><h1>Optimized Route Planner</h1><p>Select a depot and stops, then build balanced daily routes.</p></header>
+<section id="loginScreen">
+  <div class="login-card">
+    <div class="login-logo">RP</div>
+    <h1>RoutePilot</h1>
+    <p>Plan smarter. Drive less. Stay organized.</p><div style="font-size:12px;color:#7f93aa;margin:-10px 0 18px">Multi-day route optimization for real-world schedules</div>
+
+    <label>Email</label>
+    <input id="loginEmail" type="email" autocomplete="email" placeholder="you@example.com">
+
+    <label>Password</label>
+    <input id="loginPassword" type="password" autocomplete="current-password" placeholder="At least 8 characters">
+
+    <div class="row">
+      <button id="loginOnlyBtn" class="green">Log in</button>
+      <button id="signupOnlyBtn">Create account</button>
+    </div>
+
+    <div id="loginMessage" class="note" style="display:none"></div>
+  </div>
+</section>
+
+<section id="appScreen">
+  <div class="top-user-bar">
+    <span id="topUserEmail"></span>
+    <button id="topLogoutBtn" class="secondary">Log out</button>
+  </div>
+<header><h1>RoutePilot</h1><p>Smart multi-day route planning for field visits, service stops, and weekly schedules.</p></header>
 <div class="layout">
 <aside class="card sidebar">
   <div class="note"><b>Steps:</b> Set the red starting point, add blue stops, select days and preferred stops per day, then optimize. Every day starts and ends at the same depot.</div>
 
-  <div class="auth-panel">
+  <div class="auth-panel" style="display:none">
     <h3>Account</h3>
     <label>Email</label>
     <input id="authEmail" type="email" placeholder="you@example.com">
@@ -161,6 +332,37 @@ const els = {
   loadProjectBtn:$('loadProjectBtn'), deleteProjectBtn:$('deleteProjectBtn'),
   projectMessage:$('projectMessage')
 };
+
+
+const loginScreen = document.getElementById('loginScreen');
+const appScreen = document.getElementById('appScreen');
+const loginEmail = document.getElementById('loginEmail');
+const loginPassword = document.getElementById('loginPassword');
+const loginOnlyBtn = document.getElementById('loginOnlyBtn');
+const signupOnlyBtn = document.getElementById('signupOnlyBtn');
+const loginMessage = document.getElementById('loginMessage');
+const topUserEmail = document.getElementById('topUserEmail');
+const topLogoutBtn = document.getElementById('topLogoutBtn');
+
+function showLoginMessage(text,isError=false){
+  loginMessage.style.display='block';
+  loginMessage.textContent=text;
+  loginMessage.style.background=isError?'#fff1f0':'#f0fdf4';
+  loginMessage.style.color=isError?'#b42318':'#166534';
+}
+
+function showLoginScreen(){
+  loginScreen.style.display='flex';
+  appScreen.style.display='none';
+  topUserEmail.textContent='';
+}
+
+function showAppScreen(user){
+  loginScreen.style.display='none';
+  appScreen.style.display='block';
+  topUserEmail.textContent=user?.email ? `Signed in as ${user.email}` : '';
+  setTimeout(()=>map.invalidateSize(),100);
+}
 
 let mode='stop', depot=null, depotMarker=null, stops=[], searchResult=null, searchMarker=null;
 let plans=[], selected=0, routeLine=null;
@@ -313,6 +515,71 @@ async function updateAuthState(){
   els.userState.textContent=user?`Logged in as ${user.email}`:'Not logged in';
   return error?null:user;
 }
+
+loginOnlyBtn.onclick=async()=>{
+  const email=loginEmail.value.trim();
+  const password=loginPassword.value;
+
+  if(!email || !password){
+    showLoginMessage('Enter your email and password.',true);
+    return;
+  }
+
+  loginOnlyBtn.disabled=true;
+  loginOnlyBtn.textContent='Logging in...';
+
+  const {data,error}=await supabaseClient.auth.signInWithPassword({email,password});
+
+  loginOnlyBtn.disabled=false;
+  loginOnlyBtn.textContent='Log in';
+
+  if(error){
+    showLoginMessage(error.message,true);
+    return;
+  }
+
+  showLoginMessage('Login successful.');
+  showAppScreen(data.user);
+  await loadProjectList();
+};
+
+signupOnlyBtn.onclick=async()=>{
+  const email=loginEmail.value.trim();
+  const password=loginPassword.value;
+
+  if(!email || password.length<8){
+    showLoginMessage('Enter a valid email and a password with at least 8 characters.',true);
+    return;
+  }
+
+  signupOnlyBtn.disabled=true;
+  signupOnlyBtn.textContent='Creating...';
+
+  const {error}=await supabaseClient.auth.signUp({
+    email,
+    password,
+    options:{emailRedirectTo:'https://nsoroush91-png.github.io/route-planner/'}
+  });
+
+  signupOnlyBtn.disabled=false;
+  signupOnlyBtn.textContent='Create account';
+
+  showLoginMessage(
+    error ? error.message : 'Account created. Check your email and confirm your account, then return here to log in.',
+    !!error
+  );
+};
+
+loginPassword.addEventListener('keydown',event=>{
+  if(event.key==='Enter') loginOnlyBtn.click();
+});
+
+topLogoutBtn.onclick=async()=>{
+  await supabaseClient.auth.signOut();
+  showLoginScreen();
+  showLoginMessage('You are logged out.');
+};
+
 els.signupBtn.onclick=async()=>{
   const email=els.authEmail.value.trim(),password=els.authPassword.value;
   if(!email||password.length<8)return showAuthMessage('Enter a valid email and a password with at least 8 characters.',true);
@@ -411,10 +678,35 @@ els.deleteProjectBtn.onclick=async()=>{
 els.projectSelect.onchange=()=>{
   if(els.projectSelect.value)els.projectName.value=els.projectSelect.options[els.projectSelect.selectedIndex].textContent;
 };
-supabaseClient.auth.onAuthStateChange(()=>updateAuthState());
+
+supabaseClient.auth.onAuthStateChange(async(event,session)=>{
+  const user=session?.user || null;
+  if(user){
+    showAppScreen(user);
+    await updateAuthState();
+  }else{
+    showLoginScreen();
+  }
+});
+
+
 
 renderPoints();
-updateAuthState().then(loadProjectList);
+
+(async function initializeApp(){
+  const {data}=await supabaseClient.auth.getSession();
+  const user=data?.session?.user || null;
+
+  if(user){
+    showAppScreen(user);
+    await updateAuthState();
+    await loadProjectList();
+  }else{
+    showLoginScreen();
+  }
+})();
+
 </script>
+</section>
 </body>
 </html>

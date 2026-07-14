@@ -542,6 +542,11 @@ td{color:#dbeafe}
       SUPABASE_URL,
       SUPABASE_PUBLISHABLE_KEY
     );
+
+const recoveryMode =
+  new URLSearchParams(window.location.search).get('reset') === '1' ||
+  window.location.hash.includes('type=recovery');
+
 'use strict';
 
 const $ = id => document.getElementById(id);
@@ -1279,7 +1284,7 @@ forgotPasswordBtn.onclick=async()=>{
 
   try{
     const {error}=await supabaseClient.auth.resetPasswordForEmail(email,{
-      redirectTo:'https://nsoroush91-png.github.io/route-planner/'
+      redirectTo:'https://nsoroush91-png.github.io/route-planner/?reset=1'
     });
 
     showLoginMessage(
@@ -1324,16 +1329,17 @@ saveNewPasswordBtn.onclick=async()=>{
       return;
     }
 
-    showResetPasswordMessage('Password updated successfully. You can now continue to RoutePilot.');
+    showResetPasswordMessage('Password updated successfully.');
     setTimeout(async()=>{
+      window.history.replaceState({},document.title,'/route-planner/');
       const {data}=await supabaseClient.auth.getSession();
+
       if(data.session?.user){
-        showAppScreen(data.session.user);
-        await loadProjectList();
+        await openDashboard(data.session.user);
       }else{
         showLoginScreen();
       }
-    },1200);
+    },1000);
   }catch(error){
     showResetPasswordMessage(
       `Could not update password: ${error?.message || 'Unknown error'}`,

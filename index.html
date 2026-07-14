@@ -304,6 +304,33 @@ td{color:#dbeafe}
   .inline-editor{grid-template-columns:1fr 1fr}
 }
 
+
+.address-book-panel{margin-top:16px}
+.address-book-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.address-list{display:grid;gap:9px;margin-top:12px}
+.address-card{padding:12px;border:1px solid #263b55;border-radius:12px;background:#101d30}
+.address-card h4{margin:0 0 5px}
+.address-card small{display:block;color:#9fb0c7;line-height:1.4}
+.address-card-actions{display:flex;gap:7px;margin-top:9px;flex-wrap:wrap}
+.address-card-actions button{width:auto;padding:7px 10px}
+.email-modal{
+  position:fixed;inset:0;z-index:3000;
+  display:none;align-items:center;justify-content:center;
+  padding:20px;background:rgba(2,8,23,.78);
+}
+.email-modal-card{
+  width:min(760px,100%);max-height:88vh;overflow:auto;
+  background:#0f1b2d;border:1px solid #2a4059;border-radius:18px;
+  padding:20px;box-shadow:0 25px 80px rgba(0,0,0,.45);
+}
+.email-row{padding:12px;border:1px solid #263b55;border-radius:12px;margin-top:9px;background:#101d30}
+.email-row label{display:flex;align-items:center;gap:8px;margin:0}
+.email-row input[type="checkbox"]{width:auto}
+.email-row textarea{width:100%;min-height:92px;margin-top:8px;background:#0a1626;color:#edf4ff;border:1px solid #2a4059;border-radius:10px;padding:10px}
+.modal-actions{display:flex;gap:9px;margin-top:14px;justify-content:flex-end}
+.modal-actions button{width:auto}
+@media(max-width:700px){.address-book-grid{grid-template-columns:1fr}}
+
 </style>
 </head>
 <body>
@@ -374,6 +401,34 @@ td{color:#dbeafe}
           <div class="note">Loading saved projects…</div>
         </div>
       </div>
+
+      <div class="card dashboard-card address-book-panel" style="grid-column:1/-1">
+        <h3>Preferred Addresses</h3>
+        <p>Save customers, offices, or recurring locations and add them to a route anytime.</p>
+
+        <div class="address-book-grid">
+          <div>
+            <label>Contact or location name</label>
+            <input id="savedAddressName" placeholder="Example: ABC Dental Office">
+          </div>
+          <div>
+            <label>Email <span style="font-weight:400;color:#7f93aa">(optional)</span></label>
+            <input id="savedAddressEmail" type="email" placeholder="contact@example.com">
+          </div>
+        </div>
+
+        <label>Address</label>
+        <input id="savedAddressAddress" placeholder="Street, city, state, ZIP">
+
+        <div class="row">
+          <button id="savePreferredAddressBtn" class="green">Save address</button>
+          <button id="clearPreferredAddressBtn" class="secondary">Clear form</button>
+        </div>
+
+        <div id="preferredAddressMessage" class="note" style="display:none"></div>
+        <div id="preferredAddressList" class="address-list"></div>
+      </div>
+
 
       <div class="card dashboard-card">
         <h3>Profile</h3>
@@ -595,6 +650,19 @@ const profileLastName = document.getElementById('profileLastName');
 const profileBusinessName = document.getElementById('profileBusinessName');
 const saveProfileBtn = document.getElementById('saveProfileBtn');
 const profileMessage = document.getElementById('profileMessage');
+
+const savedAddressName = document.getElementById('savedAddressName');
+const savedAddressEmail = document.getElementById('savedAddressEmail');
+const savedAddressAddress = document.getElementById('savedAddressAddress');
+const savePreferredAddressBtn = document.getElementById('savePreferredAddressBtn');
+const clearPreferredAddressBtn = document.getElementById('clearPreferredAddressBtn');
+const preferredAddressMessage = document.getElementById('preferredAddressMessage');
+const preferredAddressList = document.getElementById('preferredAddressList');
+const emailModal = document.getElementById('emailModal');
+const emailPreviewList = document.getElementById('emailPreviewList');
+const closeEmailModalBtn = document.getElementById('closeEmailModalBtn');
+const openEmailDraftsBtn = document.getElementById('openEmailDraftsBtn');
+
 const loginOnlyBtn = document.getElementById('loginOnlyBtn');
 const signupOnlyBtn = document.getElementById('signupOnlyBtn');
 const resendConfirmationBtn = document.getElementById('resendConfirmationBtn');
@@ -931,7 +999,7 @@ async function optimize(){
       const after=cost(route,start,service,wd);
       plans.push({day:i+1,weekday:wd,route,before,drive:after.drive,elapsed:after.elapsed,violations:after.violations});
     }
-    selected=0;renderTabs();renderPlan();els.run.textContent='Optimization completed.';
+    selected=0;renderTabs();renderPlan();els.run.textContent='Optimization completed.';window.setTimeout(offerArrivalEmails,300);
   }catch(e){els.run.className='message err';els.run.textContent=e.message;}
 }
 els.optimize.onclick=optimize;
@@ -999,7 +1067,7 @@ function renderPlan(){
       <td>${i+1}</td>
       <td>
         <b>${s.address.split(',')[0]}</b><br>
-        <small>${s.address}</small>
+        <small>${s.address}</small>${s.contactName?`<br><small>${s.contactName}${s.contactEmail?` · ${s.contactEmail}`:''}</small>`:''}
         <div class="constraint-summary">${chips}</div>
         <button class="edit-stop-btn" onclick="toggleStopEditor('${s.id}')">Edit stop settings</button>
       </td>
@@ -1091,6 +1159,83 @@ function renderPlan(){
   ).addTo(map);
   map.fitBounds(routeLine.getBounds(),{padding:[25,25]});
 }
+
+function buildAppointmentEmail(stop,arrival,dayLabel){
+  const recipient=stop.contactName||'there';
+  const subject=`RoutePilot appointment estimate - ${dayLabel}`;
+  const body=`Hello ${recipient},
+
+We are planning to visit you on ${dayLabel}. Our current estimated arrival time is ${fmt(arrival)}.
+
+Please note that this is an estimate and may change slightly due to traffic or earlier appointments.
+
+Thank you.`;
+
+  return {to:stop.contactEmail,subject,body};
+}
+
+function offerArrivalEmails(){
+  const rows=[];
+  const [h,m]=els.start.value.split(':').map(Number);
+  const start=h*60+m;
+
+  plans.forEach(plan=>{
+    let elapsed=0,previous=depot;
+
+    plan.route.forEach(stop=>{
+      const travelTime=travel(previous,stop,elapsed,start,plan.weekday);
+      let arrival=start+elapsed+travelTime;
+      const earliest=clockToMinutes(stop.earliest);
+      if(earliest!=null && arrival<earliest)arrival=earliest;
+
+      if(stop.contactEmail){
+        const dayLabel=`Day ${plan.day} (${dayName(plan.weekday)})`;
+        const message=buildAppointmentEmail(stop,arrival,dayLabel);
+        rows.push({stop,arrival,dayLabel,...message});
+      }
+
+      elapsed=(arrival-start)+(stop.serviceMinutes??Number(els.service.value));
+      previous=stop;
+    });
+  });
+
+  if(!rows.length)return;
+
+  emailPreviewList.innerHTML=rows.map((item,index)=>`
+    <div class="email-row">
+      <label>
+        <input type="checkbox" class="arrival-email-check" data-index="${index}" checked>
+        <strong>${item.stop.contactName||item.stop.address.split(',')[0]}</strong>
+        <span style="color:#9fb0c7">${item.to}</span>
+      </label>
+      <div style="margin-top:6px;color:#7dd3fc">Estimated arrival: ${fmt(item.arrival)} · ${item.dayLabel}</div>
+      <textarea id="emailBody-${index}">${item.body}</textarea>
+    </div>
+  `).join('');
+
+  emailModal.dataset.messages=JSON.stringify(rows.map(({to,subject})=>({to,subject})));
+  emailModal.style.display='flex';
+}
+
+closeEmailModalBtn.onclick=()=>{emailModal.style.display='none';};
+
+openEmailDraftsBtn.onclick=()=>{
+  const messages=JSON.parse(emailModal.dataset.messages||'[]');
+  const selected=[...document.querySelectorAll('.arrival-email-check:checked')];
+
+  if(!selected.length)return alert('Select at least one email.');
+
+  selected.forEach((checkbox,position)=>{
+    const index=Number(checkbox.dataset.index);
+    const meta=messages[index];
+    const body=document.getElementById(`emailBody-${index}`).value;
+    const mailto=`mailto:${encodeURIComponent(meta.to)}?subject=${encodeURIComponent(meta.subject)}&body=${encodeURIComponent(body)}`;
+    window.setTimeout(()=>window.open(mailto,'_blank'),position*350);
+  });
+
+  emailModal.style.display='none';
+};
+
 els.maps.onclick=()=>{if(!plans.length)return alert('Optimize routes first.');const p=plans[selected],q=new URLSearchParams({api:'1',origin:`${depot.lat},${depot.lon}`,destination:`${depot.lat},${depot.lon}`,waypoints:p.route.map(s=>`${s.lat},${s.lon}`).join('|'),travelmode:'driving'});window.open('https://www.google.com/maps/dir/?'+q.toString(),'_blank');};
 els.print.onclick=()=>{if(!plans.length)return alert('Optimize routes first.');window.print();};
 els.clearStops.onclick=()=>{stops.forEach(s=>map.removeLayer(s.marker));stops=[];invalidate();renderPoints();updateCapacity();};
@@ -1128,6 +1273,143 @@ async function updateAuthState(){
 }
 
 
+
+function showPreferredAddressMessage(text,isError=false){
+  preferredAddressMessage.style.display='block';
+  preferredAddressMessage.textContent=text;
+  preferredAddressMessage.style.background=isError?'#fff1f0':'#f0fdf4';
+  preferredAddressMessage.style.color=isError?'#b42318':'#166534';
+}
+
+function clearPreferredAddressForm(){
+  savedAddressName.value='';
+  savedAddressEmail.value='';
+  savedAddressAddress.value='';
+  savePreferredAddressBtn.dataset.editId='';
+  savePreferredAddressBtn.textContent='Save address';
+}
+clearPreferredAddressBtn.onclick=clearPreferredAddressForm;
+
+savePreferredAddressBtn.onclick=async()=>{
+  const {data}=await supabaseClient.auth.getSession();
+  const user=data.session?.user;
+  if(!user)return showPreferredAddressMessage('Please log in first.',true);
+
+  const name=savedAddressName.value.trim();
+  const address=savedAddressAddress.value.trim();
+  const email=savedAddressEmail.value.trim();
+
+  if(!name || !address){
+    return showPreferredAddressMessage('Name and address are required.',true);
+  }
+
+  const editId=savePreferredAddressBtn.dataset.editId;
+  const payload={
+    user_id:user.id,
+    name,
+    address,
+    email:email||null,
+    updated_at:new Date().toISOString()
+  };
+
+  const result=editId
+    ? await supabaseClient.from('preferred_addresses').update(payload).eq('id',editId)
+    : await supabaseClient.from('preferred_addresses').insert(payload);
+
+  if(result.error)return showPreferredAddressMessage(result.error.message,true);
+
+  showPreferredAddressMessage(editId?'Address updated.':'Address saved.');
+  clearPreferredAddressForm();
+  await loadPreferredAddresses();
+};
+
+async function loadPreferredAddresses(){
+  const {data,error}=await supabaseClient
+    .from('preferred_addresses')
+    .select('*')
+    .order('name',{ascending:true});
+
+  if(error){
+    preferredAddressList.innerHTML=`<div class="note">${error.message}</div>`;
+    return;
+  }
+
+  if(!data.length){
+    preferredAddressList.innerHTML='<div class="note">No preferred addresses saved yet.</div>';
+    return;
+  }
+
+  preferredAddressList.innerHTML=data.map(item=>`
+    <div class="address-card">
+      <h4>${item.name}</h4>
+      <small>${item.address}</small>
+      <small>${item.email||'No email saved'}</small>
+      <div class="address-card-actions">
+        <button onclick="addPreferredAddressToRoute('${item.id}')">Add to route</button>
+        <button class="secondary" onclick="editPreferredAddress('${item.id}')">Edit</button>
+        <button class="red" onclick="deletePreferredAddress('${item.id}')">Delete</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+window.editPreferredAddress=async id=>{
+  const {data,error}=await supabaseClient.from('preferred_addresses').select('*').eq('id',id).single();
+  if(error)return alert(error.message);
+  savedAddressName.value=data.name;
+  savedAddressEmail.value=data.email||'';
+  savedAddressAddress.value=data.address;
+  savePreferredAddressBtn.dataset.editId=id;
+  savePreferredAddressBtn.textContent='Update address';
+};
+
+window.deletePreferredAddress=async id=>{
+  if(!confirm('Delete this preferred address?'))return;
+  const {error}=await supabaseClient.from('preferred_addresses').delete().eq('id',id);
+  if(error)return alert(error.message);
+  await loadPreferredAddresses();
+};
+
+async function geocodeSavedAddress(address){
+  const response=await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=us&q=${encodeURIComponent(address)}`);
+  const results=await response.json();
+  if(!results.length)throw new Error('Address could not be found on the map.');
+  return {lat:Number(results[0].lat),lon:Number(results[0].lon),display:results[0].display_name};
+}
+
+window.addPreferredAddressToRoute=async id=>{
+  try{
+    const {data,error}=await supabaseClient.from('preferred_addresses').select('*').eq('id',id).single();
+    if(error)throw error;
+    const geo=await geocodeSavedAddress(data.address);
+
+    const s={
+      id:crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random()),
+      lat:geo.lat,
+      lon:geo.lon,
+      address:geo.display,
+      marker:null,
+      serviceMinutes:Number(els.service.value)||40,
+      earliest:'',
+      latest:'',
+      requiredWeekday:'',
+      priority:'normal',
+      contactName:data.name,
+      contactEmail:data.email||''
+    };
+
+    s.marker=L.marker([s.lat,s.lon],{icon:blueIcon,draggable:true}).addTo(map);
+    stops.push(s);
+    invalidate();
+    renderPoints();
+    updateCapacity();
+    showAppScreen((await supabaseClient.auth.getSession()).data.session.user);
+    map.setView([s.lat,s.lon],14);
+  }catch(error){
+    alert(error.message||'Could not add address to route.');
+  }
+};
+
 async function loadProfile(user){
   const {data,error}=await supabaseClient.from('profiles').select('*').eq('id',user.id).maybeSingle();
   if(error){console.error(error);return null;}
@@ -1137,6 +1419,7 @@ async function openDashboard(user){
   const profile=await loadProfile(user);
   showDashboardScreen(user,profile);
   await loadDashboardProjects();
+  await loadPreferredAddresses();
 }
 async function loadDashboardProjects(){
   const {data,error}=await supabaseClient.from('route_projects').select('id,project_name,updated_at').order('updated_at',{ascending:false});
@@ -1421,7 +1704,7 @@ els.logoutBtn.onclick=async()=>{
 function getProjectData(){
   return {
     depot:depot?{lat:depot.lat,lon:depot.lon,address:depot.address}:null,
-    stops:stops.map(s=>({id:s.id,lat:s.lat,lon:s.lon,address:s.address,serviceMinutes:s.serviceMinutes,earliest:s.earliest,latest:s.latest,requiredWeekday:s.requiredWeekday,priority:s.priority})),
+    stops:stops.map(s=>({id:s.id,lat:s.lat,lon:s.lon,address:s.address,serviceMinutes:s.serviceMinutes,earliest:s.earliest,latest:s.latest,requiredWeekday:s.requiredWeekday,priority:s.priority,contactName:s.contactName||'',contactEmail:s.contactEmail||''})),
     settings:{days:els.days.value,perDay:els.perDay.value,weekday:els.weekday.value,start:els.start.value,service:els.service.value}
   };
 }
@@ -1443,7 +1726,7 @@ async function restoreProject(projectData){
     depotMarker=L.marker([d.lat,d.lon],{icon:redIcon,draggable:true}).addTo(map).bindPopup(`<b>Start / return</b><br>${d.address}`);
   }
   for(const raw of (projectData.stops||[])){
-    const s={id:raw.id||String(Date.now()+Math.random()),lat:raw.lat,lon:raw.lon,address:raw.address,marker:null,serviceMinutes:raw.serviceMinutes??40,earliest:raw.earliest||'',latest:raw.latest||'',requiredWeekday:raw.requiredWeekday??'',priority:raw.priority||'normal'};
+    const s={id:raw.id||String(Date.now()+Math.random()),lat:raw.lat,lon:raw.lon,address:raw.address,marker:null,serviceMinutes:raw.serviceMinutes??40,earliest:raw.earliest||'',latest:raw.latest||'',requiredWeekday:raw.requiredWeekday??'',priority:raw.priority||'normal',contactName:raw.contactName||'',contactEmail:raw.contactEmail||''};
     s.marker=L.marker([s.lat,s.lon],{icon:blueIcon,draggable:true}).addTo(map);
     stops.push(s);
   }
@@ -1524,5 +1807,18 @@ renderPoints();
 
 </script>
 </section>
+
+<div id="emailModal" class="email-modal">
+  <div class="email-modal-card">
+    <h2 style="margin-top:0">Send estimated arrival emails?</h2>
+    <p>Select the contacts you want to notify. RoutePilot will open a prefilled email draft for each selected contact.</p>
+    <div id="emailPreviewList"></div>
+    <div class="modal-actions">
+      <button id="closeEmailModalBtn" class="secondary">Not now</button>
+      <button id="openEmailDraftsBtn" class="green">Open selected email drafts</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>

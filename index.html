@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   <title>RoutePilot</title>
+  <link rel="icon" type="image/png" href="routepilot-logo.png">
 
   <link
     rel="stylesheet"
@@ -182,14 +183,70 @@ td{color:#dbeafe}
   color:white;
 }
 
+
+.brand-lockup{
+  display:flex;
+  align-items:center;
+  gap:14px;
+}
+.brand-logo{
+  display:block;
+  object-fit:contain;
+}
+.login-brand-logo{
+  width:100%;
+  max-width:310px;
+  height:auto;
+  margin:0 auto 18px;
+  border-radius:16px;
+  background:white;
+  padding:10px;
+  box-shadow:0 16px 38px rgba(0,0,0,.22);
+}
+.header-brand-logo{
+  width:210px;
+  max-width:52vw;
+  height:auto;
+  border-radius:12px;
+  background:white;
+  padding:6px 10px;
+  box-shadow:0 10px 24px rgba(0,0,0,.18);
+}
+.header-brand-text{
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+}
+.header-brand-text h1{
+  margin:0;
+}
+@media(max-width:700px){
+  .brand-lockup{align-items:flex-start;flex-direction:column}
+  .header-brand-logo{width:180px;max-width:100%}
+}
+
 </style>
 </head>
 <body>
 <section id="loginScreen">
   <div class="login-card">
-    <div class="login-logo">RP</div>
-    <h1>RoutePilot</h1>
+    <img class="brand-logo login-brand-logo" src="routepilot-logo.png" alt="RoutePilot logo">
+    <h1>Welcome to RoutePilot</h1>
     <p>Plan smarter. Drive less. Stay organized.</p><div style="font-size:12px;color:#7f93aa;margin:-10px 0 18px">Multi-day route optimization for real-world schedules</div>
+
+    <div class="row">
+      <div>
+        <label>First name</label>
+        <input id="firstName" type="text" autocomplete="given-name" placeholder="First name">
+      </div>
+      <div>
+        <label>Last name</label>
+        <input id="lastName" type="text" autocomplete="family-name" placeholder="Last name">
+      </div>
+    </div>
+
+    <label>Business name</label>
+    <input id="businessName" type="text" autocomplete="organization" placeholder="Company or business">
 
     <label>Email</label>
     <input id="loginEmail" type="email" autocomplete="email" placeholder="you@example.com">
@@ -202,6 +259,10 @@ td{color:#dbeafe}
       <button id="signupOnlyBtn">Create account</button>
     </div>
 
+    <div style="font-size:11px;color:#7f93aa;margin-top:10px">
+      First name, last name, and business are required only when creating a new account.
+    </div>
+
     <div id="loginMessage" class="note" style="display:none"></div>
   </div>
 </section>
@@ -211,7 +272,15 @@ td{color:#dbeafe}
     <span id="topUserEmail"></span>
     <button id="topLogoutBtn" class="secondary">Log out</button>
   </div>
-<header><h1>RoutePilot</h1><p>Smart multi-day route planning for field visits, service stops, and weekly schedules.</p></header>
+<header>
+  <div class="brand-lockup">
+    <img class="brand-logo header-brand-logo" src="routepilot-logo.png" alt="RoutePilot logo">
+    <div class="header-brand-text">
+      <h1>RoutePilot</h1>
+      <p>Smart multi-day route planning for field visits, service stops, and weekly schedules.</p>
+    </div>
+  </div>
+</header>
 <div class="layout">
 <aside class="card sidebar">
   <div class="note"><b>Steps:</b> Set the red starting point, add blue stops, select days and preferred stops per day, then optimize. Every day starts and ends at the same depot.</div>
@@ -336,6 +405,9 @@ const els = {
 
 const loginScreen = document.getElementById('loginScreen');
 const appScreen = document.getElementById('appScreen');
+const firstName = document.getElementById('firstName');
+const lastName = document.getElementById('lastName');
+const businessName = document.getElementById('businessName');
 const loginEmail = document.getElementById('loginEmail');
 const loginPassword = document.getElementById('loginPassword');
 const loginOnlyBtn = document.getElementById('loginOnlyBtn');
@@ -360,7 +432,19 @@ function showLoginScreen(){
 function showAppScreen(user){
   loginScreen.style.display='none';
   appScreen.style.display='block';
-  topUserEmail.textContent=user?.email ? `Signed in as ${user.email}` : '';
+
+  const meta=user?.user_metadata || {};
+  const fullName=[meta.first_name,meta.last_name].filter(Boolean).join(' ');
+  const business=meta.business_name || '';
+
+  if(fullName && business){
+    topUserEmail.textContent=`${fullName} · ${business}`;
+  }else if(fullName){
+    topUserEmail.textContent=fullName;
+  }else{
+    topUserEmail.textContent=user?.email ? `Signed in as ${user.email}` : '';
+  }
+
   setTimeout(()=>map.invalidateSize(),100);
 }
 
@@ -510,9 +594,21 @@ function showProjectMessage(text,isError=false){
   els.projectMessage.style.color=isError?'#b42318':'#166534';
 }
 async function updateAuthState(){
-  const {data,error}=await supabaseClient.auth.getUser();
-  const user=data?.user||null;
-  els.userState.textContent=user?`Logged in as ${user.email}`:'Not logged in';
+  const {data,error}=await supabaseClient.auth.getSession();
+  const user=data?.session?.user||null;
+
+  if(user){
+    const meta=user.user_metadata || {};
+    const fullName=[meta.first_name,meta.last_name].filter(Boolean).join(' ');
+    const business=meta.business_name || '';
+    els.userState.textContent=
+      fullName
+        ? `Logged in as ${fullName}${business ? ` · ${business}` : ''}`
+        : `Logged in as ${user.email}`;
+  }else{
+    els.userState.textContent='Not logged in';
+  }
+
   return error?null:user;
 }
 
@@ -544,8 +640,16 @@ loginOnlyBtn.onclick=async()=>{
 };
 
 signupOnlyBtn.onclick=async()=>{
+  const first=firstName.value.trim();
+  const last=lastName.value.trim();
+  const business=businessName.value.trim();
   const email=loginEmail.value.trim();
   const password=loginPassword.value;
+
+  if(!first || !last || !business){
+    showLoginMessage('Enter your first name, last name, and business name.',true);
+    return;
+  }
 
   if(!email || password.length<8){
     showLoginMessage('Enter a valid email and a password with at least 8 characters.',true);
@@ -555,19 +659,36 @@ signupOnlyBtn.onclick=async()=>{
   signupOnlyBtn.disabled=true;
   signupOnlyBtn.textContent='Creating...';
 
-  const {error}=await supabaseClient.auth.signUp({
-    email,
-    password,
-    options:{emailRedirectTo:'https://nsoroush91-png.github.io/route-planner/'}
-  });
+  try{
+    const {error}=await supabaseClient.auth.signUp({
+      email,
+      password,
+      options:{
+        emailRedirectTo:'https://nsoroush91-png.github.io/route-planner/',
+        data:{
+          first_name:first,
+          last_name:last,
+          business_name:business,
+          full_name:`${first} ${last}`
+        }
+      }
+    });
 
-  signupOnlyBtn.disabled=false;
-  signupOnlyBtn.textContent='Create account';
-
-  showLoginMessage(
-    error ? error.message : 'Account created. Check your email and confirm your account, then return here to log in.',
-    !!error
-  );
+    showLoginMessage(
+      error
+        ? error.message
+        : 'Account created. Check your email and confirm your account, then return here to log in.',
+      !!error
+    );
+  }catch(error){
+    showLoginMessage(
+      `Could not connect to Supabase: ${error?.message || 'Unknown connection error'}`,
+      true
+    );
+  }finally{
+    signupOnlyBtn.disabled=false;
+    signupOnlyBtn.textContent='Create account';
+  }
 };
 
 loginPassword.addEventListener('keydown',event=>{

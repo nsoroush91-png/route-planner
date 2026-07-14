@@ -325,6 +325,7 @@ td{color:#dbeafe}
       <label>Password</label>
       <input id="loginPassword" type="password" autocomplete="current-password" placeholder="Your password">
       <button id="loginOnlyBtn" class="green" style="margin-top:14px">Log in</button>
+      <button id="forgotPasswordBtn" class="secondary" style="margin-top:9px">Forgot password?</button>
     </div>
 
     <div id="signupForm" class="signup-only">
@@ -392,6 +393,24 @@ td{color:#dbeafe}
         <div id="profileMessage" class="note" style="display:none"></div>
       </div>
     </div>
+  </div>
+</section>
+
+
+<section id="resetPasswordScreen" style="display:none;min-height:100vh;align-items:center;justify-content:center;padding:24px">
+  <div class="login-card">
+    <img class="brand-logo login-brand-logo" src="routepilot-logo.png" alt="RoutePilot logo">
+    <h1>Create a new password</h1>
+    <p>Enter a new password for your RoutePilot account.</p>
+
+    <label>New password</label>
+    <input id="newPassword" type="password" autocomplete="new-password" placeholder="At least 8 characters">
+
+    <label>Confirm new password</label>
+    <input id="confirmNewPassword" type="password" autocomplete="new-password" placeholder="Repeat the new password">
+
+    <button id="saveNewPasswordBtn" class="green" style="margin-top:14px">Update password</button>
+    <div id="resetPasswordMessage" class="note" style="display:none"></div>
   </div>
 </section>
 
@@ -575,6 +594,12 @@ const loginOnlyBtn = document.getElementById('loginOnlyBtn');
 const signupOnlyBtn = document.getElementById('signupOnlyBtn');
 const resendConfirmationBtn = document.getElementById('resendConfirmationBtn');
 const loginMessage = document.getElementById('loginMessage');
+const forgotPasswordBtn = document.getElementById('forgotPasswordBtn');
+const resetPasswordScreen = document.getElementById('resetPasswordScreen');
+const newPassword = document.getElementById('newPassword');
+const confirmNewPassword = document.getElementById('confirmNewPassword');
+const saveNewPasswordBtn = document.getElementById('saveNewPasswordBtn');
+const resetPasswordMessage = document.getElementById('resetPasswordMessage');
 const topUserEmail = document.getElementById('topUserEmail');
 const topLogoutBtn = document.getElementById('topLogoutBtn');
 
@@ -593,6 +618,20 @@ function showLoginMessage(text,isError=false){
   loginMessage.textContent=text;
   loginMessage.style.background=isError?'#fff1f0':'#f0fdf4';
   loginMessage.style.color=isError?'#b42318':'#166534';
+}
+
+
+function showResetPasswordMessage(text,isError=false){
+  resetPasswordMessage.style.display='block';
+  resetPasswordMessage.textContent=text;
+  resetPasswordMessage.style.background=isError?'#fff1f0':'#f0fdf4';
+  resetPasswordMessage.style.color=isError?'#b42318':'#166534';
+}
+
+function showResetPasswordScreen(){
+  loginScreen.style.display='none';
+  appScreen.style.display='none';
+  resetPasswordScreen.style.display='flex';
 }
 
 function showLoginScreen(){
@@ -1194,7 +1233,7 @@ signupOnlyBtn.onclick=async()=>{
   signupOnlyBtn.textContent='Creating...';
 
   try{
-    const {error}=await supabaseClient.auth.signUp({
+    const {data,error}=await supabaseClient.auth.signUp({
       email,
       password,
       options:{
@@ -1225,6 +1264,86 @@ signupOnlyBtn.onclick=async()=>{
   }
 };
 
+
+
+forgotPasswordBtn.onclick=async()=>{
+  const email=loginEmail.value.trim();
+
+  if(!email){
+    showLoginMessage('Enter your email address first, then click Forgot password.',true);
+    return;
+  }
+
+  forgotPasswordBtn.disabled=true;
+  forgotPasswordBtn.textContent='Sending reset email...';
+
+  try{
+    const {error}=await supabaseClient.auth.resetPasswordForEmail(email,{
+      redirectTo:'https://nsoroush91-png.github.io/route-planner/'
+    });
+
+    showLoginMessage(
+      error
+        ? error.message
+        : 'Password reset email requested. Check your inbox and spam folder.',
+      !!error
+    );
+  }catch(error){
+    showLoginMessage(
+      `Could not request password reset: ${error?.message || 'Unknown error'}`,
+      true
+    );
+  }finally{
+    forgotPasswordBtn.disabled=false;
+    forgotPasswordBtn.textContent='Forgot password?';
+  }
+};
+
+saveNewPasswordBtn.onclick=async()=>{
+  const password=newPassword.value;
+  const confirmation=confirmNewPassword.value;
+
+  if(password.length<8){
+    showResetPasswordMessage('Password must be at least 8 characters.',true);
+    return;
+  }
+
+  if(password!==confirmation){
+    showResetPasswordMessage('The two passwords do not match.',true);
+    return;
+  }
+
+  saveNewPasswordBtn.disabled=true;
+  saveNewPasswordBtn.textContent='Updating...';
+
+  try{
+    const {error}=await supabaseClient.auth.updateUser({password});
+
+    if(error){
+      showResetPasswordMessage(error.message,true);
+      return;
+    }
+
+    showResetPasswordMessage('Password updated successfully. You can now continue to RoutePilot.');
+    setTimeout(async()=>{
+      const {data}=await supabaseClient.auth.getSession();
+      if(data.session?.user){
+        showAppScreen(data.session.user);
+        await loadProjectList();
+      }else{
+        showLoginScreen();
+      }
+    },1200);
+  }catch(error){
+    showResetPasswordMessage(
+      `Could not update password: ${error?.message || 'Unknown error'}`,
+      true
+    );
+  }finally{
+    saveNewPasswordBtn.disabled=false;
+    saveNewPasswordBtn.textContent='Update password';
+  }
+};
 
 resendConfirmationBtn.onclick=async()=>{
   const email=signupEmail.value.trim();

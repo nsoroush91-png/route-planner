@@ -1,11 +1,19 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Route Planner Demo v6</title>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Route Planner Demo v6</title>
+
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  >
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{--bg:#f4f7fb;--card:#fff;--text:#172033;--muted:#667085;--blue:#2563eb;--green:#059669;--red:#dc2626;--line:#dbe2ea}
 *{box-sizing:border-box} body{margin:0;font-family:Arial,Segoe UI,sans-serif;background:var(--bg);color:var(--text)}
@@ -22,6 +30,11 @@ button{border:none;background:var(--blue);color:white;font-weight:800;cursor:poi
 table{width:100%;border-collapse:collapse}th,td{padding:9px;border-bottom:1px solid var(--line);text-align:left;font-size:13px}th{background:#f8fafc}
 .list{max-height:220px;overflow:auto;margin-top:10px}.item{padding:8px 0;border-bottom:1px solid var(--line);font-size:12px}.item b{display:block}
 #printTitle{display:none}
+.auth-panel,.project-panel{margin-top:14px;padding:12px;border:1px solid var(--line);border-radius:12px;background:#fafcff}
+.auth-panel h3,.project-panel h3{margin:0 0 8px;font-size:15px}
+.user-state{font-size:12px;margin-top:8px;color:var(--muted);word-break:break-word}
+.project-list{margin-top:8px}
+
 @media(max-width:900px){.layout{grid-template-columns:1fr}.stats{grid-template-columns:1fr 1fr}}
 @media print{header,.sidebar,#map,.tabs,.actions{display:none!important}.layout{display:block;padding:0}.results{box-shadow:none;border:none}.card{box-shadow:none}#printTitle{display:block;font-size:23px;font-weight:800;margin-bottom:12px}}
 </style>
@@ -31,6 +44,39 @@ table{width:100%;border-collapse:collapse}th,td{padding:9px;border-bottom:1px so
 <div class="layout">
 <aside class="card sidebar">
   <div class="note"><b>Steps:</b> Set the red starting point, add blue stops, select days and preferred stops per day, then optimize. Every day starts and ends at the same depot.</div>
+
+  <div class="auth-panel">
+    <h3>Account</h3>
+    <label>Email</label>
+    <input id="authEmail" type="email" placeholder="you@example.com">
+    <label>Password</label>
+    <input id="authPassword" type="password" placeholder="At least 8 characters">
+    <div class="row">
+      <button id="signupBtn">Create account</button>
+      <button id="loginBtn" class="green">Log in</button>
+    </div>
+    <button id="logoutBtn" class="secondary" style="margin-top:9px">Log out</button>
+    <div id="authMessage" class="note" style="display:none"></div>
+    <div id="userState" class="user-state">Not logged in</div>
+  </div>
+
+  <div class="project-panel">
+    <h3>Saved Projects</h3>
+    <label>Project name</label>
+    <input id="projectName" placeholder="Example: Monday Phoenix Route">
+    <div class="row">
+      <button id="saveProjectBtn" class="green">Save project</button>
+      <button id="refreshProjectsBtn" class="secondary">Refresh list</button>
+    </div>
+    <select id="projectSelect" class="project-list">
+      <option value="">No saved projects loaded</option>
+    </select>
+    <div class="row">
+      <button id="loadProjectBtn">Load selected</button>
+      <button id="deleteProjectBtn" class="red">Delete selected</button>
+    </div>
+    <div id="projectMessage" class="note" style="display:none"></div>
+  </div>
 
   <div class="mode">
     <button id="modeDepot">Set starting point</button>
@@ -85,6 +131,14 @@ table{width:100%;border-collapse:collapse}th,td{padding:9px;border-bottom:1px so
 </div>
 
 <script>
+  const SUPABASE_URL = "https://tirwsczlvkuwhwkpdpik.supabase.co";
+    const SUPABASE_PUBLISHABLE_KEY =
+      "sb_publishable_D7bR7EpnFWpM0EsLc0mnqQ_0zcF9jdS";
+
+    const supabaseClient = supabase.createClient(
+      SUPABASE_URL,
+      SUPABASE_PUBLISHABLE_KEY
+    );
 'use strict';
 
 const $ = id => document.getElementById(id);
@@ -98,7 +152,14 @@ const els = {
   optimize:$('optimizeBtn'), run:$('runMessage'), clearStops:$('clearStops'), clearAll:$('clearAll'),
   pointList:$('pointList'), tabs:$('tabs'), sStops:$('sStops'), sDrive:$('sDrive'),
   sFinish:$('sFinish'), sImprove:$('sImprove'), maps:$('mapsBtn'), print:$('printBtn'),
-  printTitle:$('printTitle'), tbody:$('tbody')
+  printTitle:$('printTitle'), tbody:$('tbody'),
+  authEmail:$('authEmail'), authPassword:$('authPassword'),
+  signupBtn:$('signupBtn'), loginBtn:$('loginBtn'), logoutBtn:$('logoutBtn'),
+  authMessage:$('authMessage'), userState:$('userState'),
+  projectName:$('projectName'), saveProjectBtn:$('saveProjectBtn'),
+  refreshProjectsBtn:$('refreshProjectsBtn'), projectSelect:$('projectSelect'),
+  loadProjectBtn:$('loadProjectBtn'), deleteProjectBtn:$('deleteProjectBtn'),
+  projectMessage:$('projectMessage')
 };
 
 let mode='stop', depot=null, depotMarker=null, stops=[], searchResult=null, searchMarker=null;
@@ -233,7 +294,127 @@ els.maps.onclick=()=>{if(!plans.length)return alert('Optimize routes first.');co
 els.print.onclick=()=>{if(!plans.length)return alert('Optimize routes first.');window.print();};
 els.clearStops.onclick=()=>{stops.forEach(s=>map.removeLayer(s.marker));stops=[];invalidate();renderPoints();updateCapacity();};
 els.clearAll.onclick=()=>{els.clearStops.click();if(depotMarker)map.removeLayer(depotMarker);depot=null;depotMarker=null;renderPoints();};
+
+function showAuthMessage(text,isError=false){
+  els.authMessage.style.display='block';
+  els.authMessage.textContent=text;
+  els.authMessage.style.background=isError?'#fff1f0':'#f0fdf4';
+  els.authMessage.style.color=isError?'#b42318':'#166534';
+}
+function showProjectMessage(text,isError=false){
+  els.projectMessage.style.display='block';
+  els.projectMessage.textContent=text;
+  els.projectMessage.style.background=isError?'#fff1f0':'#f0fdf4';
+  els.projectMessage.style.color=isError?'#b42318':'#166534';
+}
+async function updateAuthState(){
+  const {data,error}=await supabaseClient.auth.getUser();
+  const user=data?.user||null;
+  els.userState.textContent=user?`Logged in as ${user.email}`:'Not logged in';
+  return error?null:user;
+}
+els.signupBtn.onclick=async()=>{
+  const email=els.authEmail.value.trim(),password=els.authPassword.value;
+  if(!email||password.length<8)return showAuthMessage('Enter a valid email and a password with at least 8 characters.',true);
+  const {error}=await supabaseClient.auth.signUp({
+    email,password,
+    options:{emailRedirectTo:'https://nsoroush91-png.github.io/route-planner/'}
+  });
+  showAuthMessage(error?error.message:'Account created. Check your email to confirm it.',!!error);
+};
+els.loginBtn.onclick=async()=>{
+  const {error}=await supabaseClient.auth.signInWithPassword({
+    email:els.authEmail.value.trim(),password:els.authPassword.value
+  });
+  showAuthMessage(error?error.message:'You are logged in.',!!error);
+  if(!error){await updateAuthState();await loadProjectList();}
+};
+els.logoutBtn.onclick=async()=>{
+  await supabaseClient.auth.signOut();
+  showAuthMessage('You are logged out.');
+  els.projectSelect.innerHTML='<option value="">No saved projects loaded</option>';
+  await updateAuthState();
+};
+function getProjectData(){
+  return {
+    depot:depot?{lat:depot.lat,lon:depot.lon,address:depot.address}:null,
+    stops:stops.map(s=>({id:s.id,lat:s.lat,lon:s.lon,address:s.address})),
+    settings:{days:els.days.value,perDay:els.perDay.value,weekday:els.weekday.value,start:els.start.value,service:els.service.value}
+  };
+}
+async function clearMapForLoad(){
+  stops.forEach(s=>map.removeLayer(s.marker));stops=[];
+  if(depotMarker){map.removeLayer(depotMarker);depotMarker=null;}
+  depot=null;invalidate();
+}
+async function restoreProject(projectData){
+  await clearMapForLoad();
+  const settings=projectData.settings||{};
+  if(settings.days)els.days.value=settings.days;
+  if(settings.perDay)els.perDay.value=settings.perDay;
+  if(settings.weekday!==undefined)els.weekday.value=settings.weekday;
+  if(settings.start)els.start.value=settings.start;
+  if(settings.service)els.service.value=settings.service;
+  if(projectData.depot){
+    const d=projectData.depot;depot={lat:d.lat,lon:d.lon,address:d.address};
+    depotMarker=L.marker([d.lat,d.lon],{icon:redIcon,draggable:true}).addTo(map).bindPopup(`<b>Start / return</b><br>${d.address}`);
+  }
+  for(const raw of (projectData.stops||[])){
+    const s={id:raw.id||String(Date.now()+Math.random()),lat:raw.lat,lon:raw.lon,address:raw.address,marker:null};
+    s.marker=L.marker([s.lat,s.lon],{icon:blueIcon,draggable:true}).addTo(map);
+    stops.push(s);
+  }
+  renderPoints();updateCapacity();
+  const pts=[...(depot?[[depot.lat,depot.lon]]:[]),...stops.map(s=>[s.lat,s.lon])];
+  if(pts.length)map.fitBounds(pts,{padding:[25,25]});
+}
+els.saveProjectBtn.onclick=async()=>{
+  const user=await updateAuthState();
+  if(!user)return showProjectMessage('Log in before saving a project.',true);
+  const name=els.projectName.value.trim();
+  if(!name)return showProjectMessage('Enter a project name.',true);
+  if(!depot||!stops.length)return showProjectMessage('Add a starting point and at least one stop before saving.',true);
+  const selectedId=els.projectSelect.value;
+  const q=selectedId
+    ? supabaseClient.from('route_projects').update({project_name:name,project_data:getProjectData(),updated_at:new Date().toISOString()}).eq('id',selectedId)
+    : supabaseClient.from('route_projects').insert({user_id:user.id,project_name:name,project_data:getProjectData()});
+  const {error}=await q;
+  if(error)return showProjectMessage(error.message,true);
+  showProjectMessage(selectedId?'Project updated.':'Project saved.');
+  await loadProjectList();
+};
+async function loadProjectList(){
+  const user=await updateAuthState();
+  if(!user){els.projectSelect.innerHTML='<option value="">Log in to view projects</option>';return;}
+  const {data,error}=await supabaseClient.from('route_projects').select('id,project_name,updated_at').order('updated_at',{ascending:false});
+  if(error)return showProjectMessage(error.message,true);
+  els.projectSelect.innerHTML=data.length
+    ? '<option value="">Create a new project</option>'+data.map(p=>`<option value="${p.id}">${p.project_name}</option>`).join('')
+    : '<option value="">No saved projects</option>';
+}
+els.refreshProjectsBtn.onclick=loadProjectList;
+els.loadProjectBtn.onclick=async()=>{
+  const id=els.projectSelect.value;
+  if(!id)return showProjectMessage('Select a saved project first.',true);
+  const {data,error}=await supabaseClient.from('route_projects').select('*').eq('id',id).single();
+  if(error)return showProjectMessage(error.message,true);
+  els.projectName.value=data.project_name;await restoreProject(data.project_data);showProjectMessage('Project loaded.');
+};
+els.deleteProjectBtn.onclick=async()=>{
+  const id=els.projectSelect.value;
+  if(!id)return showProjectMessage('Select a saved project first.',true);
+  if(!confirm('Delete this saved project?'))return;
+  const {error}=await supabaseClient.from('route_projects').delete().eq('id',id);
+  if(error)return showProjectMessage(error.message,true);
+  els.projectName.value='';showProjectMessage('Project deleted.');await loadProjectList();
+};
+els.projectSelect.onchange=()=>{
+  if(els.projectSelect.value)els.projectName.value=els.projectSelect.options[els.projectSelect.selectedIndex].textContent;
+};
+supabaseClient.auth.onAuthStateChange(()=>updateAuthState());
+
 renderPoints();
+updateAuthState().then(loadProjectList);
 </script>
 </body>
 </html>

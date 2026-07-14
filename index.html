@@ -257,6 +257,53 @@ td{color:#dbeafe}
   .profile-grid{grid-template-columns:1fr}
 }
 
+
+.route-edit-row td{background:#0c1728}
+.inline-editor{
+  display:grid;
+  grid-template-columns:repeat(5,minmax(120px,1fr));
+  gap:8px;
+  align-items:end;
+}
+.inline-editor label{
+  font-size:10px;
+  color:#9fb0c7;
+  margin:0 0 4px;
+}
+.inline-editor select,.inline-editor input{
+  padding:7px 8px;
+  font-size:12px;
+}
+.edit-stop-btn{
+  width:auto;
+  padding:6px 10px;
+  margin-top:6px;
+  background:#14243b;
+  color:#bae6fd;
+  border:1px solid #2d4663;
+}
+.constraint-summary{
+  display:flex;
+  gap:6px;
+  flex-wrap:wrap;
+  margin-top:6px;
+}
+.constraint-chip{
+  display:inline-block;
+  padding:3px 7px;
+  border-radius:999px;
+  background:#17263d;
+  color:#b8c8dd;
+  font-size:10px;
+}
+.constraint-chip.important{
+  background:#2d1b45;
+  color:#c4b5fd;
+}
+@media(max-width:900px){
+  .inline-editor{grid-template-columns:1fr 1fr}
+}
+
 </style>
 </head>
 <body>
@@ -423,7 +470,20 @@ td{color:#dbeafe}
     <option value="4">Thursday</option><option value="5">Friday</option><option value="6">Saturday</option><option value="0">Sunday</option>
   </select>
 
-  <label>Start time</label><input id="startInput" type="time" value="06:00">
+  <label>Start time</label>
+    <select id="startInput">
+      <option value="04:00">4:00 AM</option>
+      <option value="04:30">4:30 AM</option>
+      <option value="05:00">5:00 AM</option>
+      <option value="05:30">5:30 AM</option>
+      <option value="06:00" selected>6:00 AM</option>
+      <option value="06:30">6:30 AM</option>
+      <option value="07:00">7:00 AM</option>
+      <option value="07:30">7:30 AM</option>
+      <option value="08:00">8:00 AM</option>
+      <option value="08:30">8:30 AM</option>
+      <option value="09:00">9:00 AM</option>
+    </select>
   <label>Minutes at each stop</label>
   <select id="serviceInput"><option>20</option><option>30</option><option selected>40</option><option>60</option></select>
 
@@ -433,7 +493,7 @@ td{color:#dbeafe}
 
   <div class="row"><button id="clearStops" class="secondary">Clear stops</button><button id="clearAll" class="red">Clear all</button></div>
 
-  <label>Selected points</label><div id="pointList" class="list"></div>
+  <div id="pointList" class="list" style="display:none"></div>
 </aside>
 
 <main>
@@ -833,45 +893,156 @@ els.optimize.onclick=optimize;
 function renderTabs(){els.tabs.innerHTML=plans.map((p,i)=>`<button class="tab ${i===selected?'active':''}" onclick="selectPlan(${i})">Day ${i+1} · ${dayName(p.weekday)}</button>`).join('');}
 window.selectPlan=i=>{selected=i;renderTabs();renderPlan();};
 function fmt(x){x=Math.round(x)%1440;const h=Math.floor(x/60),m=x%60;return `${((h+11)%12)+1}:${String(m).padStart(2,'0')} ${h>=12?'PM':'AM'}`;}
+
+function buildTimeOptions(selectedValue){
+  const options=['<option value="">No restriction</option>'];
+  for(let hour=0;hour<24;hour++){
+    for(let minute of [0,15,30,45]){
+      const value=`${String(hour).padStart(2,'0')}:${String(minute).padStart(2,'0')}`;
+      const displayHour=((hour+11)%12)+1;
+      const ampm=hour>=12?'PM':'AM';
+      const label=`${displayHour}:${String(minute).padStart(2,'0')} ${ampm}`;
+      options.push(`<option value="${value}" ${selectedValue===value?'selected':''}>${label}</option>`);
+    }
+  }
+  return options.join('');
+}
+
+window.toggleStopEditor=id=>{
+  const row=document.getElementById(`editor-${id}`);
+  if(row)row.style.display=row.style.display==='none'?'table-row':'none';
+};
+
+window.updateStopAndRefresh=(id,key,value)=>{
+  const stop=stops.find(s=>s.id===id);
+  if(!stop)return;
+  stop[key]=key==='serviceMinutes'?Math.max(0,Number(value)||0):value;
+  invalidate();
+  optimize();
+};
+
 function renderPlan(){
   const p=plans[selected],[h,m]=els.start.value.split(':').map(Number),start=h*60+m,service=+els.service.value;
   let e=0,prev=depot,rows='';
+
   p.route.forEach((s,i)=>{
     const t=travel(prev,s,e,start,p.weekday);
     let arrival=start+e+t;
     const earliest=clockToMinutes(s.earliest);
     const latest=clockToMinutes(s.latest);
     let wait=0;
-    if(earliest!=null && arrival<earliest){wait=earliest-arrival;arrival=earliest;}
+
+    if(earliest!=null && arrival<earliest){
+      wait=earliest-arrival;
+      arrival=earliest;
+    }
+
     const violation=latest!=null && arrival>latest;
     const duration=s.serviceMinutes??service;
     const departure=arrival+duration;
-    const constraintText=[
-      s.earliest?`earliest ${s.earliest}`:'',
-      s.latest?`latest ${s.latest}`:'',
-      s.requiredWeekday!==''?dayName(Number(s.requiredWeekday)):'',
-      `${s.priority} priority`
-    ].filter(Boolean).join(' · ');
+
+    const chips=[
+      `<span class="constraint-chip">${duration} min service</span>`,
+      s.earliest?`<span class="constraint-chip">After ${fmt(clockToMinutes(s.earliest))}</span>`:'',
+      s.latest?`<span class="constraint-chip ${violation?'important':''}">Before ${fmt(clockToMinutes(s.latest))}</span>`:'',
+      s.requiredWeekday!==''?`<span class="constraint-chip">${dayName(Number(s.requiredWeekday))}</span>`:'',
+      `<span class="constraint-chip ${s.priority!=='normal'?'important':''}">${s.priority} priority</span>`
+    ].filter(Boolean).join('');
+
     rows+=`<tr>
       <td>${i+1}</td>
-      <td><b>${s.address.split(',')[0]}</b><br><small>${s.address}</small><br><small>${constraintText}</small></td>
-      <td class="${violation?'violation':wait?'waiting':''}">${fmt(arrival)}${violation?' ⚠ late':wait?` · waited ${Math.round(wait)} min`:''}</td>
+      <td>
+        <b>${s.address.split(',')[0]}</b><br>
+        <small>${s.address}</small>
+        <div class="constraint-summary">${chips}</div>
+        <button class="edit-stop-btn" onclick="toggleStopEditor('${s.id}')">Edit stop settings</button>
+      </td>
+      <td class="${violation?'violation':wait?'waiting':''}">
+        ${fmt(arrival)}${violation?' ⚠ late':wait?` · waited ${Math.round(wait)} min`:''}
+      </td>
       <td>${fmt(departure)}</td>
       <td>${Math.round(t)} min</td>
+    </tr>
+
+    <tr id="editor-${s.id}" class="route-edit-row" style="display:none">
+      <td></td>
+      <td colspan="4">
+        <div class="inline-editor">
+          <div>
+            <label>Service duration</label>
+            <select onchange="updateStopAndRefresh('${s.id}','serviceMinutes',this.value)">
+              ${[15,20,30,40,45,60,90,120].map(v=>`<option value="${v}" ${Number(duration)===v?'selected':''}>${v} minutes</option>`).join('')}
+            </select>
+          </div>
+
+          <div>
+            <label>Earliest arrival</label>
+            <select onchange="updateStopAndRefresh('${s.id}','earliest',this.value)">
+              ${buildTimeOptions(s.earliest)}
+            </select>
+          </div>
+
+          <div>
+            <label>Latest arrival</label>
+            <select onchange="updateStopAndRefresh('${s.id}','latest',this.value)">
+              ${buildTimeOptions(s.latest)}
+            </select>
+          </div>
+
+          <div>
+            <label>Required weekday</label>
+            <select onchange="updateStopAndRefresh('${s.id}','requiredWeekday',this.value)">
+              <option value="" ${s.requiredWeekday===''?'selected':''}>Any day</option>
+              <option value="1" ${s.requiredWeekday==='1'?'selected':''}>Monday</option>
+              <option value="2" ${s.requiredWeekday==='2'?'selected':''}>Tuesday</option>
+              <option value="3" ${s.requiredWeekday==='3'?'selected':''}>Wednesday</option>
+              <option value="4" ${s.requiredWeekday==='4'?'selected':''}>Thursday</option>
+              <option value="5" ${s.requiredWeekday==='5'?'selected':''}>Friday</option>
+              <option value="6" ${s.requiredWeekday==='6'?'selected':''}>Saturday</option>
+              <option value="0" ${s.requiredWeekday==='0'?'selected':''}>Sunday</option>
+            </select>
+          </div>
+
+          <div>
+            <label>Priority</label>
+            <select onchange="updateStopAndRefresh('${s.id}','priority',this.value)">
+              <option value="normal" ${s.priority==='normal'?'selected':''}>Normal</option>
+              <option value="high" ${s.priority==='high'?'selected':''}>High</option>
+              <option value="critical" ${s.priority==='critical'?'selected':''}>Critical</option>
+            </select>
+          </div>
+        </div>
+      </td>
     </tr>`;
-    e=departure-start;prev=s;
+
+    e=departure-start;
+    prev=s;
   });
+
   const back=travel(prev,depot,e,start,p.weekday);
-  rows+=`<tr><td>↩</td><td><b>Return to depot</b><br><small>${depot.address}</small></td><td>${fmt(start+e+back)}</td><td>—</td><td>${Math.round(back)} min</td></tr>`;
+  rows+=`<tr>
+    <td>↩</td>
+    <td><b>Return to depot</b><br><small>${depot.address}</small></td>
+    <td>${fmt(start+e+back)}</td>
+    <td>—</td>
+    <td>${Math.round(back)} min</td>
+  </tr>`;
+
   els.tbody.innerHTML=rows;
   els.sStops.textContent=p.route.length;
   els.sDrive.textContent=Math.round(p.drive)+' min';
   els.sFinish.textContent=fmt(start+p.elapsed);
+
   const imp=p.before?Math.max(0,(p.before-p.drive)/p.before*100):0;
   els.sImprove.textContent=imp.toFixed(1)+'%'+(p.violations?` · ${p.violations} late`:'');
+
   els.printTitle.textContent=`Day ${p.day} — ${dayName(p.weekday)} Route`;
+
   if(routeLine)map.removeLayer(routeLine);
-  routeLine=L.polyline([[depot.lat,depot.lon],...p.route.map(s=>[s.lat,s.lon]),[depot.lat,depot.lon]],{color:'#059669',weight:5}).addTo(map);
+  routeLine=L.polyline(
+    [[depot.lat,depot.lon],...p.route.map(s=>[s.lat,s.lon]),[depot.lat,depot.lon]],
+    {color:'#059669',weight:5}
+  ).addTo(map);
   map.fitBounds(routeLine.getBounds(),{padding:[25,25]});
 }
 els.maps.onclick=()=>{if(!plans.length)return alert('Optimize routes first.');const p=plans[selected],q=new URLSearchParams({api:'1',origin:`${depot.lat},${depot.lon}`,destination:`${depot.lat},${depot.lon}`,waypoints:p.route.map(s=>`${s.lat},${s.lon}`).join('|'),travelmode:'driving'});window.open('https://www.google.com/maps/dir/?'+q.toString(),'_blank');};

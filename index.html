@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   <title>RoutePilot</title>
+  <meta name="routepilot-build" content="login-fix-2026-07-13">
   <link rel="icon" type="image/png" href="routepilot-logo.png">
 
   <link
@@ -447,7 +448,7 @@ td{color:#dbeafe}
         <button id="saveProfileBtn" class="green" style="margin-top:12px">Save Profile</button>
         <div id="profileMessage" class="note" style="display:none"></div>
       </div>
-    </div></div>
+    </div>
   </div>
 </section>
 
@@ -601,6 +602,17 @@ td{color:#dbeafe}
 const recoveryMode =
   new URLSearchParams(window.location.search).get('reset') === '1' ||
   window.location.hash.includes('type=recovery');
+
+window.addEventListener('error',event=>{
+  console.error('RoutePilot runtime error:',event.error||event.message);
+  const box=document.getElementById('loginMessage');
+  if(box && document.getElementById('loginScreen')?.style.display!=='none'){
+    box.style.display='block';
+    box.style.background='#fff1f0';
+    box.style.color='#b42318';
+    box.textContent=`Website error: ${event.message}. Please refresh the page.`;
+  }
+});
 
 'use strict';
 
@@ -1416,10 +1428,29 @@ async function loadProfile(user){
   return data;
 }
 async function openDashboard(user){
-  const profile=await loadProfile(user);
-  showDashboardScreen(user,profile);
-  await loadDashboardProjects();
-  await loadPreferredAddresses();
+  // Display the dashboard immediately after authentication.
+  showDashboardScreen(user,null);
+
+  try{
+    const profile=await loadProfile(user);
+    showDashboardScreen(user,profile);
+  }catch(error){
+    console.error('Profile load failed:',error);
+  }
+
+  try{
+    await loadDashboardProjects();
+  }catch(error){
+    console.error('Projects load failed:',error);
+    dashboardProjects.innerHTML=`<div class="note">Could not load projects: ${error?.message||'Unknown error'}</div>`;
+  }
+
+  try{
+    await loadPreferredAddresses();
+  }catch(error){
+    console.error('Preferred addresses load failed:',error);
+    preferredAddressList.innerHTML=`<div class="note">Could not load preferred addresses: ${error?.message||'Unknown error'}</div>`;
+  }
 }
 async function loadDashboardProjects(){
   const {data,error}=await supabaseClient.from('route_projects').select('id,project_name,updated_at').order('updated_at',{ascending:false});
@@ -1487,7 +1518,13 @@ loginOnlyBtn.onclick=async()=>{
       return;
     }
 
+    if(!data?.user){
+      showLoginMessage('Login completed, but no user account was returned. Please refresh and try again.',true);
+      return;
+    }
+
     showLoginMessage('Login successful.');
+    showDashboardScreen(data.user,null);
     await openDashboard(data.user);
   }catch(error){
     showLoginMessage(

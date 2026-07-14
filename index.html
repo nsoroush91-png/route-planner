@@ -345,6 +345,7 @@ td{color:#dbeafe}
       <label>Password</label>
       <input id="signupPassword" type="password" autocomplete="new-password" placeholder="At least 8 characters">
       <button id="signupOnlyBtn" style="margin-top:14px">Create account</button>
+      <button id="resendConfirmationBtn" class="secondary" style="margin-top:9px">Resend confirmation email</button>
     </div>
 
     <div id="loginMessage" class="note" style="display:none"></div>
@@ -572,6 +573,7 @@ const saveProfileBtn = document.getElementById('saveProfileBtn');
 const profileMessage = document.getElementById('profileMessage');
 const loginOnlyBtn = document.getElementById('loginOnlyBtn');
 const signupOnlyBtn = document.getElementById('signupOnlyBtn');
+const resendConfirmationBtn = document.getElementById('resendConfirmationBtn');
 const loginMessage = document.getElementById('loginMessage');
 const topUserEmail = document.getElementById('topUserEmail');
 const topLogoutBtn = document.getElementById('topLogoutBtn');
@@ -1139,8 +1141,8 @@ saveProfileBtn.onclick=async()=>{
 dashboardLogoutBtn.onclick=async()=>{await supabaseClient.auth.signOut();showLoginScreen();};
 
 loginOnlyBtn.onclick=async()=>{
-  const email=signupEmail.value.trim();
-  const password=signupPassword.value;
+  const email=loginEmail.value.trim();
+  const password=loginPassword.value;
 
   if(!email || !password){
     showLoginMessage('Enter your email and password.',true);
@@ -1150,26 +1152,33 @@ loginOnlyBtn.onclick=async()=>{
   loginOnlyBtn.disabled=true;
   loginOnlyBtn.textContent='Logging in...';
 
-  const {data,error}=await supabaseClient.auth.signInWithPassword({email,password});
+  try{
+    const {data,error}=await supabaseClient.auth.signInWithPassword({email,password});
 
-  loginOnlyBtn.disabled=false;
-  loginOnlyBtn.textContent='Log in';
+    if(error){
+      showLoginMessage(error.message,true);
+      return;
+    }
 
-  if(error){
-    showLoginMessage(error.message,true);
-    return;
+    showLoginMessage('Login successful.');
+    await openDashboard(data.user);
+  }catch(error){
+    showLoginMessage(
+      `Could not connect to Supabase: ${error?.message || 'Unknown connection error'}`,
+      true
+    );
+  }finally{
+    loginOnlyBtn.disabled=false;
+    loginOnlyBtn.textContent='Log in';
   }
-
-  showLoginMessage('Login successful.');
-  await openDashboard(data.user);
 };
 
 signupOnlyBtn.onclick=async()=>{
   const first=firstName.value.trim();
   const last=lastName.value.trim();
   const business=businessName.value.trim();
-  const email=loginEmail.value.trim();
-  const password=loginPassword.value;
+  const email=signupEmail.value.trim();
+  const password=signupPassword.value;
 
   if(!first || !last || !business){
     showLoginMessage('Enter your first name, last name, and business name.',true);
@@ -1213,6 +1222,42 @@ signupOnlyBtn.onclick=async()=>{
   }finally{
     signupOnlyBtn.disabled=false;
     signupOnlyBtn.textContent='Create account';
+  }
+};
+
+
+resendConfirmationBtn.onclick=async()=>{
+  const email=signupEmail.value.trim();
+
+  if(!email){
+    showLoginMessage('Enter your signup email first.',true);
+    return;
+  }
+
+  resendConfirmationBtn.disabled=true;
+  resendConfirmationBtn.textContent='Sending...';
+
+  try{
+    const {error}=await supabaseClient.auth.resend({
+      type:'signup',
+      email,
+      options:{
+        emailRedirectTo:'https://nsoroush91-png.github.io/route-planner/'
+      }
+    });
+
+    showLoginMessage(
+      error ? error.message : 'Confirmation email sent again. Check your inbox and spam folder.',
+      !!error
+    );
+  }catch(error){
+    showLoginMessage(
+      `Could not send confirmation email: ${error?.message || 'Unknown error'}`,
+      true
+    );
+  }finally{
+    resendConfirmationBtn.disabled=false;
+    resendConfirmationBtn.textContent='Resend confirmation email';
   }
 };
 

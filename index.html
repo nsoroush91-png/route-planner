@@ -359,6 +359,172 @@ td{color:#dbeafe}
   .app-nav .nav-spacer{display:none}
 }
 
+
+:root{
+  --rr-bg:#07111f;
+  --rr-panel:#0d1a2d;
+  --rr-panel-2:#12233b;
+  --rr-border:#263d5b;
+  --rr-text:#eef6ff;
+  --rr-muted:#91a6bf;
+  --rr-blue:#22c7f2;
+  --rr-indigo:#4f46e5;
+  --rr-purple:#9333ea;
+  --rr-success:#10b981;
+}
+body{
+  background:
+    radial-gradient(circle at 12% 8%,rgba(34,199,242,.10),transparent 24%),
+    radial-gradient(circle at 88% 14%,rgba(147,51,234,.12),transparent 26%),
+    linear-gradient(180deg,#06101d 0%,#091527 100%);
+}
+.app-nav{
+  box-shadow:0 12px 40px rgba(0,0,0,.28);
+}
+.app-nav button{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  min-height:42px;
+  font-weight:700;
+  transition:transform .18s ease,background .18s ease,border-color .18s ease;
+}
+.app-nav button:hover{
+  transform:translateY(-1px);
+  border-color:#3d5d83;
+}
+.app-nav button.active{
+  background:linear-gradient(135deg,var(--rr-blue),var(--rr-indigo) 55%,var(--rr-purple));
+  box-shadow:0 10px 24px rgba(79,70,229,.28);
+}
+.dashboard-single{
+  max-width:1180px;
+  padding:34px 24px 56px;
+}
+.section-heading{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:18px;
+  padding:22px 24px;
+  margin-bottom:20px;
+  border:1px solid rgba(84,118,158,.28);
+  border-radius:20px;
+  background:
+    linear-gradient(135deg,rgba(17,35,59,.92),rgba(10,24,42,.92)),
+    radial-gradient(circle at top right,rgba(34,199,242,.16),transparent 38%);
+  box-shadow:0 18px 55px rgba(0,0,0,.24);
+}
+.section-heading h1{
+  margin:0;
+  font-size:clamp(28px,4vw,42px);
+  letter-spacing:-.03em;
+}
+.section-heading p{
+  margin:8px 0 0;
+  color:var(--rr-muted);
+  font-size:15px;
+}
+.section-kicker{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  padding:6px 10px;
+  margin-bottom:10px;
+  border-radius:999px;
+  color:#bdefff;
+  background:rgba(34,199,242,.10);
+  border:1px solid rgba(34,199,242,.24);
+  font-size:11px;
+  font-weight:800;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+}
+.dashboard-card{
+  border:1px solid rgba(74,104,142,.34);
+  border-radius:18px;
+  background:linear-gradient(145deg,rgba(15,30,51,.96),rgba(10,23,40,.96));
+  box-shadow:0 18px 55px rgba(0,0,0,.20);
+}
+.dashboard-card h2,.dashboard-card h3{
+  letter-spacing:-.02em;
+}
+.quick-actions{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:14px;
+  margin-top:18px;
+}
+.quick-card{
+  position:relative;
+  overflow:hidden;
+  padding:18px;
+  border-radius:16px;
+  border:1px solid rgba(78,108,146,.34);
+  background:linear-gradient(145deg,rgba(18,37,63,.95),rgba(11,25,43,.95));
+}
+.quick-card::after{
+  content:"";
+  position:absolute;
+  width:90px;height:90px;
+  right:-28px;top:-28px;
+  border-radius:50%;
+  background:linear-gradient(135deg,rgba(34,199,242,.18),rgba(147,51,234,.12));
+}
+.quick-card strong{
+  display:block;
+  margin-bottom:6px;
+  font-size:15px;
+}
+.quick-card span{
+  color:var(--rr-muted);
+  font-size:12px;
+  line-height:1.5;
+}
+.feature-icon{
+  width:42px;height:42px;
+  display:grid;place-items:center;
+  margin-bottom:12px;
+  border-radius:13px;
+  font-size:20px;
+  background:linear-gradient(135deg,rgba(34,199,242,.22),rgba(79,70,229,.28));
+  border:1px solid rgba(72,183,236,.30);
+}
+.project-card,.address-card{
+  transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease;
+}
+.project-card:hover,.address-card:hover{
+  transform:translateY(-2px);
+  border-color:#42668e;
+  box-shadow:0 14px 30px rgba(0,0,0,.18);
+}
+.hero-start-button{
+  min-height:52px;
+  font-size:15px;
+  box-shadow:0 14px 32px rgba(16,185,129,.20);
+}
+.reset-shell{
+  width:min(520px,100%);
+  position:relative;
+}
+.reset-shell::before{
+  content:"";
+  position:absolute;
+  inset:-1px;
+  border-radius:22px;
+  padding:1px;
+  background:linear-gradient(135deg,var(--rr-blue),var(--rr-purple));
+  -webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);
+  -webkit-mask-composite:xor;
+  mask-composite:exclude;
+  pointer-events:none;
+}
+@media(max-width:820px){
+  .quick-actions{grid-template-columns:1fr}
+  .section-heading{align-items:flex-start;flex-direction:column}
+}
+
 </style>
 </head>
 <body>
@@ -405,7 +571,7 @@ td{color:#dbeafe}
     </div>
 
     <div id="loginMessage" class="note" style="display:none"></div>
-    <div style="margin-top:12px;font-size:10px;color:#52657c">Build: routeroush-1</div>
+    <div style="margin-top:12px;font-size:10px;color:#52657c">Build: routeroush-tabs-2</div>
   </div>
 </section>
 
@@ -413,10 +579,10 @@ td{color:#dbeafe}
 
 <section id="dashboardScreen" style="display:none">
   <nav class="app-nav">
-    <button id="navNewProject" class="active">New Project</button>
-    <button id="navSavedProjects">Saved Projects</button>
-    <button id="navPreferredAddresses">Preferred Addresses</button>
-    <button id="navProfile">Profile</button>
+    <button id="navNewProject" class="active">✨ New Project</button>
+    <button id="navSavedProjects">📁 Saved Projects</button>
+    <button id="navPreferredAddresses">📍 Preferred Addresses</button>
+    <button id="navProfile">👤 Profile</button>
     <div class="nav-spacer"></div>
     <span id="navUserLabel" style="color:#8fa3bb;font-size:13px"></span>
     <span id="dashboardWelcome" style="display:none"></span>
@@ -426,13 +592,30 @@ td{color:#dbeafe}
   <section id="newProjectView" class="app-view active">
     <div class="dashboard-single">
       <div class="section-heading">
-        <h1>Create a New Project</h1>
-        <p>Build and optimize a new multi-day route.</p>
+        <div>
+          <div class="section-kicker">Route workspace</div>
+          <h1>Create a New Project</h1>
+          <p>Build, schedule, and optimize a multi-day route from one focused workspace.</p>
+        </div>
       </div>
       <div class="card dashboard-card">
-        <button id="newRouteBtn" class="green">+ Start New Project</button>
-        <div class="note" style="margin-top:14px">
-          Create a project, add stops, set appointment constraints, and optimize the route.
+        <button id="newRouteBtn" class="green hero-start-button">+ Start New Project</button>
+        <div class="quick-actions">
+          <div class="quick-card">
+            <div class="feature-icon">📍</div>
+            <strong>Add locations</strong>
+            <span>Use map search or saved preferred addresses.</span>
+          </div>
+          <div class="quick-card">
+            <div class="feature-icon">🕒</div>
+            <strong>Set constraints</strong>
+            <span>Choose service times, weekdays, priorities, and arrival windows.</span>
+          </div>
+          <div class="quick-card">
+            <div class="feature-icon">⚡</div>
+            <strong>Optimize</strong>
+            <span>Generate an efficient multi-day schedule with estimated arrival times.</span>
+          </div>
         </div>
       </div>
     </div>
@@ -519,7 +702,7 @@ td{color:#dbeafe}
 
 
 <section id="resetPasswordScreen" style="display:none;min-height:100vh;align-items:center;justify-content:center;padding:24px">
-  <div class="login-card">
+  <div class="login-card reset-shell">
     <img class="brand-logo login-brand-logo" src="routeroush-logo.png" alt="RouteRoush logo">
     <h1>Create a new password</h1>
     <p>Enter a new password for your RouteRoush account.</p>
@@ -675,9 +858,16 @@ td{color:#dbeafe}
       SUPABASE_PUBLISHABLE_KEY
     );
 
-const recoveryMode =
+let recoveryMode =
   new URLSearchParams(window.location.search).get('reset') === '1' ||
-  window.location.hash.includes('type=recovery');
+  window.location.hash.includes('type=recovery') ||
+  sessionStorage.getItem('routeroush-password-recovery') === '1';
+
+if(new URLSearchParams(window.location.search).get('reset')==='1'){
+  recoveryMode=true;
+  sessionStorage.setItem('routeroush-password-recovery','1');
+  window.setTimeout(showResetPasswordScreen,0);
+}
 
 window.addEventListener('error',event=>{
   console.error('RouteRoush runtime error:',event.error||event.message);
@@ -813,6 +1003,10 @@ function showLoginScreen(){
   topUserEmail.textContent='';
 }
 function showDashboardScreen(user,profile){
+  if(recoveryMode){
+    showResetPasswordScreen();
+    return;
+  }
   loginScreen.style.display='none';
   resetPasswordScreen.style.display='none';
   appScreen.style.display='none';
@@ -1556,6 +1750,10 @@ async function loadProfile(user){
   return data;
 }
 async function openDashboard(user){
+  if(recoveryMode){
+    showResetPasswordScreen();
+    return;
+  }
   // Display the dashboard immediately after authentication.
   showDashboardScreen(user,null);
 
@@ -1733,6 +1931,7 @@ forgotPasswordBtn.onclick=async()=>{
 
   forgotPasswordBtn.disabled=true;
   forgotPasswordBtn.textContent='Sending reset email...';
+  sessionStorage.setItem('routeroush-password-recovery','1');
 
   try{
     const {error}=await supabaseClient.auth.resetPasswordForEmail(email,{
@@ -1782,6 +1981,8 @@ saveNewPasswordBtn.onclick=async()=>{
     }
 
     showResetPasswordMessage('Password updated successfully.');
+    recoveryMode=false;
+    sessionStorage.removeItem('routeroush-password-recovery');
     setTimeout(async()=>{
       window.history.replaceState({},document.title,'/');
       const {data}=await supabaseClient.auth.getSession();

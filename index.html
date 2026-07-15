@@ -525,6 +525,77 @@ body{
   .section-heading{align-items:flex-start;flex-direction:column}
 }
 
+
+.saved-address-home{
+  margin-top:18px;
+  border:1px solid rgba(64,93,128,.45);
+  border-radius:18px;
+  background:linear-gradient(145deg,rgba(14,29,49,.98),rgba(9,21,37,.98));
+  overflow:hidden;
+}
+.saved-address-home summary{
+  cursor:pointer;
+  list-style:none;
+  padding:16px 18px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+  font-weight:800;
+  color:#e8f3ff;
+}
+.saved-address-home summary::-webkit-details-marker{display:none}
+.saved-address-home summary::after{
+  content:"▾";
+  color:#7dd3fc;
+  font-size:16px;
+}
+.saved-address-home[open] summary::after{content:"▴"}
+.saved-address-home-body{
+  padding:0 16px 16px;
+  border-top:1px solid rgba(56,83,115,.45);
+}
+.saved-address-home-note{
+  margin:12px 0;
+  color:#91a6bf;
+  font-size:13px;
+}
+.saved-address-home-list{
+  display:grid;
+  gap:10px;
+}
+.saved-address-home-card{
+  display:grid;
+  grid-template-columns:1fr auto;
+  gap:14px;
+  align-items:center;
+  padding:13px;
+  border-radius:14px;
+  border:1px solid #263d5b;
+  background:#0a1728;
+}
+.saved-address-home-card h4{margin:0 0 5px}
+.saved-address-home-card small{
+  display:block;
+  color:#91a6bf;
+  line-height:1.45;
+}
+.saved-address-home-actions{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+}
+.saved-address-home-actions button{
+  width:auto;
+  padding:8px 11px;
+  font-size:12px;
+}
+@media(max-width:760px){
+  .saved-address-home-card{grid-template-columns:1fr}
+  .saved-address-home-actions{justify-content:flex-start}
+}
+
 </style>
 </head>
 <body>
@@ -571,7 +642,7 @@ body{
     </div>
 
     <div id="loginMessage" class="note" style="display:none"></div>
-    <div style="margin-top:12px;font-size:10px;color:#52657c">Build: dedicated-reset-page-1</div>
+    <div style="margin-top:12px;font-size:10px;color:#52657c">Build: saved-address-picker-1</div>
   </div>
 </section>
 
@@ -617,6 +688,20 @@ body{
             <span>Generate an efficient multi-day schedule with estimated arrival times.</span>
           </div>
         </div>
+        <details id="newProjectSavedAddresses" class="saved-address-home">
+          <summary>
+            <span>📍 Use a Saved Address</span>
+            <span style="font-size:12px;color:#91a6bf;font-weight:600">Starting point or stop</span>
+          </summary>
+          <div class="saved-address-home-body">
+            <div class="saved-address-home-note">
+              Choose one of your preferred addresses before opening the route planner.
+            </div>
+            <div id="newProjectSavedAddressList" class="saved-address-home-list">
+              <div class="note">Open this section to load your saved addresses.</div>
+            </div>
+          </div>
+        </details>
       </div>
     </div>
   </section>
@@ -923,6 +1008,10 @@ const newProjectView = document.getElementById('newProjectView');
 const savedProjectsView = document.getElementById('savedProjectsView');
 const preferredAddressesView = document.getElementById('preferredAddressesView');
 const profileView = document.getElementById('profileView');
+
+const newProjectSavedAddresses = document.getElementById('newProjectSavedAddresses');
+const newProjectSavedAddressList = document.getElementById('newProjectSavedAddressList');
+
 
 const newRouteBtn = document.getElementById('newRouteBtn');
 const backDashboardBtn = document.getElementById('backDashboardBtn');
@@ -1725,7 +1814,10 @@ function showDashboardTab(tabName){
   buttons[tabName]?.classList.add('active');
 }
 
-navNewProject.onclick=()=>showDashboardTab('new');
+navNewProject.onclick=async()=>{
+  showDashboardTab('new');
+  if(newProjectSavedAddresses.open)await loadNewProjectSavedAddresses();
+};
 navSavedProjects.onclick=async()=>{
   showDashboardTab('projects');
   await loadDashboardProjects();
@@ -1735,6 +1827,127 @@ navPreferredAddresses.onclick=async()=>{
   await loadPreferredAddresses();
 };
 navProfile.onclick=()=>showDashboardTab('profile');
+
+
+async function loadNewProjectSavedAddresses(){
+  const {data,error}=await supabaseClient
+    .from('preferred_addresses')
+    .select('*')
+    .order('name',{ascending:true});
+
+  if(error){
+    newProjectSavedAddressList.innerHTML=`<div class="note">${error.message}</div>`;
+    return;
+  }
+
+  if(!data.length){
+    newProjectSavedAddressList.innerHTML=`
+      <div class="note">
+        No saved addresses yet. Add one from the Preferred Addresses tab.
+      </div>`;
+    return;
+  }
+
+  newProjectSavedAddressList.innerHTML=data.map(item=>`
+    <div class="saved-address-home-card">
+      <div>
+        <h4>${item.name}</h4>
+        <small>${item.address}</small>
+        <small>${item.email||'No email saved'}</small>
+      </div>
+      <div class="saved-address-home-actions">
+        <button class="secondary" onclick="useSavedAddressAsDepot('${item.id}')">Use as starting point</button>
+        <button onclick="useSavedAddressAsStop('${item.id}')">Add as stop</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+newProjectSavedAddresses.addEventListener('toggle',()=>{
+  if(newProjectSavedAddresses.open)loadNewProjectSavedAddresses();
+});
+
+async function getSavedAddressRecord(id){
+  const {data,error}=await supabaseClient
+    .from('preferred_addresses')
+    .select('*')
+    .eq('id',id)
+    .single();
+
+  if(error)throw error;
+  return data;
+}
+
+window.useSavedAddressAsDepot=async id=>{
+  try{
+    const saved=await getSavedAddressRecord(id);
+    const geo=await geocodeSavedAddress(saved.address);
+
+    if(depot?.marker)map.removeLayer(depot.marker);
+
+    depot={
+      lat:geo.lat,
+      lon:geo.lon,
+      address:geo.display,
+      contactName:saved.name,
+      contactEmail:saved.email||'',
+      marker:null
+    };
+
+    depot.marker=L.marker([depot.lat,depot.lon],{
+      icon:greenIcon,
+      draggable:true
+    }).addTo(map);
+
+    invalidate();
+    renderPoints();
+    updateCapacity();
+
+    const {data}=await supabaseClient.auth.getSession();
+    if(data.session?.user)showAppScreen(data.session.user);
+    map.setView([depot.lat,depot.lon],14);
+  }catch(error){
+    alert(error?.message||'Could not use this saved address as the starting point.');
+  }
+};
+
+window.useSavedAddressAsStop=async id=>{
+  try{
+    const saved=await getSavedAddressRecord(id);
+    const geo=await geocodeSavedAddress(saved.address);
+
+    const stop={
+      id:crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random()),
+      lat:geo.lat,
+      lon:geo.lon,
+      address:geo.display,
+      marker:null,
+      serviceMinutes:Number(els.service.value)||40,
+      earliest:'',
+      latest:'',
+      requiredWeekday:'',
+      priority:'normal',
+      contactName:saved.name,
+      contactEmail:saved.email||''
+    };
+
+    stop.marker=L.marker([stop.lat,stop.lon],{
+      icon:blueIcon,
+      draggable:true
+    }).addTo(map);
+
+    stops.push(stop);
+    invalidate();
+    renderPoints();
+    updateCapacity();
+
+    const {data}=await supabaseClient.auth.getSession();
+    if(data.session?.user)showAppScreen(data.session.user);
+    map.setView([stop.lat,stop.lon],14);
+  }catch(error){
+    alert(error?.message||'Could not add this saved address as a stop.');
+  }
+};
 
 async function loadProfile(user){
   const {data,error}=await supabaseClient.from('profiles').select('*').eq('id',user.id).maybeSingle();

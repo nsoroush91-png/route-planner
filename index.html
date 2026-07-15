@@ -571,7 +571,7 @@ body{
     </div>
 
     <div id="loginMessage" class="note" style="display:none"></div>
-    <div style="margin-top:12px;font-size:10px;color:#52657c">Build: routeroush-tabs-2</div>
+    <div style="margin-top:12px;font-size:10px;color:#52657c">Build: dedicated-reset-page-1</div>
   </div>
 </section>
 
@@ -858,16 +858,8 @@ body{
       SUPABASE_PUBLISHABLE_KEY
     );
 
-let recoveryMode =
-  new URLSearchParams(window.location.search).get('reset') === '1' ||
-  window.location.hash.includes('type=recovery') ||
-  sessionStorage.getItem('routeroush-password-recovery') === '1';
+let recoveryMode = false;
 
-if(new URLSearchParams(window.location.search).get('reset')==='1'){
-  recoveryMode=true;
-  sessionStorage.setItem('routeroush-password-recovery','1');
-  window.setTimeout(showResetPasswordScreen,0);
-}
 
 window.addEventListener('error',event=>{
   console.error('RouteRoush runtime error:',event.error||event.message);
@@ -1931,11 +1923,10 @@ forgotPasswordBtn.onclick=async()=>{
 
   forgotPasswordBtn.disabled=true;
   forgotPasswordBtn.textContent='Sending reset email...';
-  sessionStorage.setItem('routeroush-password-recovery','1');
 
   try{
     const {error}=await supabaseClient.auth.resetPasswordForEmail(email,{
-      redirectTo:'https://routeroush.com/?reset=1'
+      redirectTo:'https://routeroush.com/reset-password.html'
     });
 
     showLoginMessage(

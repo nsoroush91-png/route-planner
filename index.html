@@ -333,6 +333,32 @@ td{color:#dbeafe}
 .modal-actions button{width:auto}
 @media(max-width:700px){.address-book-grid{grid-template-columns:1fr}}
 
+
+.app-nav{
+  position:sticky;top:0;z-index:1200;display:flex;gap:8px;flex-wrap:wrap;
+  align-items:center;padding:12px 20px;background:rgba(7,17,31,.96);
+  border-bottom:1px solid #22354d;backdrop-filter:blur(14px);
+}
+.app-nav button{
+  width:auto;padding:10px 15px;border-radius:10px;background:#13233a;
+  color:#a9bad0;border:1px solid #29415e;
+}
+.app-nav button.active{
+  background:linear-gradient(135deg,#0ea5e9,#2563eb);
+  color:white;border-color:transparent;
+}
+.app-nav .nav-spacer{flex:1}
+.app-view{display:none}
+.app-view.active{display:block}
+.dashboard-single{max-width:1100px;margin:0 auto;padding:24px}
+.section-heading{margin-bottom:18px}
+.section-heading h1,.section-heading h2{margin-bottom:6px}
+@media(max-width:700px){
+  .app-nav{padding:10px}
+  .app-nav button{flex:1 1 45%}
+  .app-nav .nav-spacer{display:none}
+}
+
 </style>
 </head>
 <body>
@@ -384,19 +410,40 @@ td{color:#dbeafe}
 </section>
 
 
-<section id="dashboardScreen">
-  <div class="dashboard-shell">
-    <div class="dashboard-header">
-      <div>
-        <h1 style="margin:0">RouteRoush Dashboard</h1>
-        <p id="dashboardWelcome">Welcome</p>
+
+<section id="dashboardScreen" style="display:none">
+  <nav class="app-nav">
+    <button id="navNewProject" class="active">New Project</button>
+    <button id="navSavedProjects">Saved Projects</button>
+    <button id="navPreferredAddresses">Preferred Addresses</button>
+    <button id="navProfile">Profile</button>
+    <div class="nav-spacer"></div>
+    <span id="navUserLabel" style="color:#8fa3bb;font-size:13px"></span>
+    <span id="dashboardWelcome" style="display:none"></span>
+    <button id="dashboardLogoutBtn" class="secondary">Log out</button>
+  </nav>
+
+  <section id="newProjectView" class="app-view active">
+    <div class="dashboard-single">
+      <div class="section-heading">
+        <h1>Create a New Project</h1>
+        <p>Build and optimize a new multi-day route.</p>
       </div>
-      <div class="dashboard-header-actions">
-        <button id="dashboardLogoutBtn" class="secondary">Log out</button>
+      <div class="card dashboard-card">
+        <button id="newRouteBtn" class="green">+ Start New Project</button>
+        <div class="note" style="margin-top:14px">
+          Create a project, add stops, set appointment constraints, and optimize the route.
+        </div>
       </div>
     </div>
+  </section>
 
-    <div class="dashboard-grid">
+  <section id="savedProjectsView" class="app-view">
+    <div class="dashboard-single">
+      <div class="section-heading">
+        <h1>Saved Projects</h1>
+        <p>Open, continue, or delete your saved route plans.</p>
+      </div>
       <div class="card dashboard-card">
         <h2>Your Projects</h2>
         <p>Create a new route or continue working on a saved project.</p>
@@ -404,8 +451,15 @@ td{color:#dbeafe}
         <div id="dashboardProjects" class="project-cards" style="margin-top:16px">
           <div class="note">Loading saved projects…</div>
         </div>
-      </div>
+    </div>
+  </section>
 
+  <section id="preferredAddressesView" class="app-view">
+    <div class="dashboard-single">
+      <div class="section-heading">
+        <h1>Preferred Addresses</h1>
+        <p>Save recurring customers, offices, and service locations.</p>
+      </div>
       <div class="card dashboard-card address-book-panel">
         <h2>Preferred Addresses</h2>
         <p>Save customers, offices, or recurring locations and add them to a route anytime.</p>
@@ -432,7 +486,15 @@ td{color:#dbeafe}
         <div id="preferredAddressMessage" class="note" style="display:none"></div>
         <div id="preferredAddressList" class="address-list"></div>
       </div>
+    </div>
+  </section>
 
+  <section id="profileView" class="app-view">
+    <div class="dashboard-single">
+      <div class="section-heading">
+        <h1>Your Profile</h1>
+        <p>Manage your personal and business information.</p>
+      </div>
       <div class="card dashboard-card">
         <h2>Your Profile</h2>
         <div class="profile-grid">
@@ -451,8 +513,9 @@ td{color:#dbeafe}
         <div id="profileMessage" class="note" style="display:none"></div>
       </div>
     </div>
-  </div>
+  </section>
 </section>
+
 
 
 <section id="resetPasswordScreen" style="display:none;min-height:100vh;align-items:center;justify-content:center;padding:24px">
@@ -474,7 +537,7 @@ td{color:#dbeafe}
 
 <section id="appScreen">
   <div class="planner-top-actions">
-    <button id="backDashboardBtn" class="secondary">← Dashboard</button>
+    <button id="backDashboardBtn" class="secondary">← Back to tabs</button>
     <div class="top-user-bar" style="margin:0;padding:0">
     <span id="topUserEmail"></span>
     <button id="topLogoutBtn" class="secondary">Log out</button>
@@ -668,6 +731,17 @@ const dashboardScreen = document.getElementById('dashboardScreen');
 const dashboardWelcome = document.getElementById('dashboardWelcome');
 const dashboardProjects = document.getElementById('dashboardProjects');
 const dashboardLogoutBtn = document.getElementById('dashboardLogoutBtn');
+
+const navNewProject = document.getElementById('navNewProject');
+const navSavedProjects = document.getElementById('navSavedProjects');
+const navPreferredAddresses = document.getElementById('navPreferredAddresses');
+const navProfile = document.getElementById('navProfile');
+const navUserLabel = document.getElementById('navUserLabel');
+const newProjectView = document.getElementById('newProjectView');
+const savedProjectsView = document.getElementById('savedProjectsView');
+const preferredAddressesView = document.getElementById('preferredAddressesView');
+const profileView = document.getElementById('profileView');
+
 const newRouteBtn = document.getElementById('newRouteBtn');
 const backDashboardBtn = document.getElementById('backDashboardBtn');
 const profileFirstName = document.getElementById('profileFirstName');
@@ -740,13 +814,21 @@ function showLoginScreen(){
 }
 function showDashboardScreen(user,profile){
   loginScreen.style.display='none';
+  resetPasswordScreen.style.display='none';
   appScreen.style.display='none';
   dashboardScreen.style.display='block';
+
   const first=profile?.first_name||user?.user_metadata?.first_name||'';
   const last=profile?.last_name||user?.user_metadata?.last_name||'';
   const business=profile?.business_name||user?.user_metadata?.business_name||'';
-  dashboardWelcome.textContent=`Welcome${first?`, ${first}`:''}${business?` · ${business}`:''}`;
-  profileFirstName.value=first;profileLastName.value=last;profileBusinessName.value=business;
+
+  navUserLabel.textContent=business || [first,last].filter(Boolean).join(' ') || user?.email || '';
+  dashboardWelcome.textContent=`Welcome${first?`, ${first}`:''}`;
+  profileFirstName.value=first;
+  profileLastName.value=last;
+  profileBusinessName.value=business;
+
+  showDashboardTab('new');
 }
 
 function showAppScreen(user){
@@ -1435,6 +1517,39 @@ window.addPreferredAddressToRoute=async id=>{
   }
 };
 
+
+function showDashboardTab(tabName){
+  const views={
+    new:newProjectView,
+    projects:savedProjectsView,
+    addresses:preferredAddressesView,
+    profile:profileView
+  };
+  const buttons={
+    new:navNewProject,
+    projects:navSavedProjects,
+    addresses:navPreferredAddresses,
+    profile:navProfile
+  };
+
+  Object.values(views).forEach(view=>view.classList.remove('active'));
+  Object.values(buttons).forEach(button=>button.classList.remove('active'));
+
+  views[tabName]?.classList.add('active');
+  buttons[tabName]?.classList.add('active');
+}
+
+navNewProject.onclick=()=>showDashboardTab('new');
+navSavedProjects.onclick=async()=>{
+  showDashboardTab('projects');
+  await loadDashboardProjects();
+};
+navPreferredAddresses.onclick=async()=>{
+  showDashboardTab('addresses');
+  await loadPreferredAddresses();
+};
+navProfile.onclick=()=>showDashboardTab('profile');
+
 async function loadProfile(user){
   const {data,error}=await supabaseClient.from('profiles').select('*').eq('id',user.id).maybeSingle();
   if(error){console.error(error);return null;}
@@ -1494,11 +1609,15 @@ window.deleteDashboardProject=async id=>{
 newRouteBtn.onclick=async()=>{
   await clearMapForLoad();
   els.projectName.value='';
-  showAppScreen((await supabaseClient.auth.getSession()).data.session.user);
+  const {data}=await supabaseClient.auth.getSession();
+  if(data.session?.user)showAppScreen(data.session.user);
 };
 backDashboardBtn.onclick=async()=>{
   const {data}=await supabaseClient.auth.getSession();
-  if(data.session?.user)await openDashboard(data.session.user);
+  if(data.session?.user){
+    await openDashboard(data.session.user);
+    showDashboardTab('new');
+  }
 };
 saveProfileBtn.onclick=async()=>{
   const {data}=await supabaseClient.auth.getSession();

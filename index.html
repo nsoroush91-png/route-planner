@@ -723,6 +723,48 @@ body{
   .preference-visual-banner{align-items:flex-start;flex-direction:column}
 }
 
+
+/* RouteRoush app-shell redesign */
+#dashboardScreen{min-height:100vh;background:#07111f;padding:0!important}
+.rr-shell{min-height:100vh;display:grid;grid-template-columns:250px minmax(0,1fr)}
+.rr-sidebar{
+  position:sticky;top:0;height:100vh;overflow:auto;padding:22px 18px;
+  border-right:1px solid #1f3550;
+  background:radial-gradient(circle at 20% 0%,rgba(55,126,255,.12),transparent 28%),linear-gradient(180deg,#071425,#06101d)
+}
+.rr-sidebar-logo{width:190px;max-width:100%;display:block;margin:0 auto 24px;padding:7px;border-radius:14px;background:white}
+.rr-user-card{display:flex;align-items:center;gap:12px;padding:14px;margin-bottom:20px;border:1px solid #213b5b;border-radius:16px;background:rgba(16,34,57,.82)}
+.rr-avatar{width:46px;height:46px;display:grid;place-items:center;border-radius:50%;font-weight:900;color:white;background:linear-gradient(135deg,#22c7f2,#4f46e5,#9333ea)}
+.rr-user-card strong{display:block}.rr-user-card small{display:block;color:#8fa4bd;margin-top:3px;word-break:break-word}
+.rr-side-nav{display:grid;gap:8px}
+.rr-side-nav button{width:100%;min-height:46px;display:flex;align-items:center;justify-content:flex-start;gap:11px;padding:11px 13px;border-radius:12px;color:#a8b9ce;background:transparent;border:1px solid transparent;font-weight:750}
+.rr-side-nav button:hover{background:#10233b;color:white}
+.rr-side-nav button.active{color:white;border-color:rgba(110,86,255,.36);background:linear-gradient(135deg,#1f6df2,#6e3ce7);box-shadow:0 12px 28px rgba(59,72,246,.25)}
+.rr-sidebar-bottom{margin-top:22px;padding-top:18px;border-top:1px solid #1d314a}.rr-sidebar-bottom button{width:100%}
+.rr-main{min-width:0}
+.rr-topbar{position:sticky;top:0;z-index:1100;min-height:70px;display:flex;align-items:center;justify-content:space-between;gap:20px;padding:12px 26px;border-bottom:1px solid #203650;background:rgba(7,17,31,.94);backdrop-filter:blur(15px)}
+.rr-topbar-title strong{display:block;font-size:15px}.rr-topbar-title small{display:block;color:#8da2bb;margin-top:3px}
+.rr-content{min-height:calc(100vh - 70px);padding:0 24px 48px}
+.app-view{min-height:calc(100vh - 70px);padding-top:24px}
+.rr-tab-hero{position:relative;overflow:hidden;min-height:220px;display:flex;align-items:flex-end;padding:30px;margin-bottom:22px;border:1px solid rgba(89,119,155,.34);border-radius:22px;background-size:cover;background-position:center;box-shadow:0 22px 65px rgba(0,0,0,.28)}
+.rr-tab-hero::before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(3,12,23,.94),rgba(3,12,23,.44) 52%,rgba(3,12,23,.12)),linear-gradient(180deg,rgba(3,12,23,.05),rgba(3,12,23,.62))}
+.rr-tab-hero>div{position:relative;z-index:2;max-width:570px}
+.rr-tab-hero .kicker{display:inline-flex;padding:6px 10px;border-radius:999px;margin-bottom:10px;color:#c5f4ff;background:rgba(34,199,242,.12);border:1px solid rgba(34,199,242,.27);font-size:11px;font-weight:850;letter-spacing:.08em;text-transform:uppercase}
+.rr-tab-hero h1{margin:0;font-size:clamp(30px,4vw,48px);line-height:1.03;letter-spacing:-.04em}.rr-tab-hero p{margin:10px 0 0;color:#c0d0e3;line-height:1.6}
+#newProjectView .rr-tab-hero{background-image:url('routeroush-hero.png');background-position:center 28%}
+#savedProjectsView .rr-tab-hero{background-image:linear-gradient(135deg,rgba(26,87,170,.26),rgba(85,39,170,.25)),url('routeroush-hero.png');background-position:center 50%}
+#preferredAddressesView .rr-tab-hero{background-image:linear-gradient(135deg,rgba(0,144,134,.20),rgba(48,88,180,.24)),url('routeroush-hero.png');background-position:center 66%}
+#profileView .rr-tab-hero{background-image:linear-gradient(135deg,rgba(76,41,166,.22),rgba(20,127,178,.20)),url('routeroush-hero.png');background-position:center 78%}
+.dashboard-single{max-width:1280px;margin:0 auto;padding:0}.section-heading{display:none!important}.visual-hero{display:none!important}
+.rr-launch-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:18px}
+.rr-launch-card{min-height:165px;padding:18px;border-radius:17px;border:1px solid #d8e4f1;color:#17243a;background:linear-gradient(145deg,#fff,#f2f7fc);box-shadow:0 12px 30px rgba(2,8,23,.12)}
+.rr-launch-card .icon{width:46px;height:46px;display:grid;place-items:center;margin-bottom:13px;border-radius:14px;font-size:23px;background:linear-gradient(135deg,#e9e4ff,#e4f5ff)}
+.rr-launch-card h3{margin:0 0 8px}.rr-launch-card p{margin:0;color:#637189;font-size:13px;line-height:1.55}
+.rr-light-workspace{padding:20px;border-radius:22px;color:#16243a;background:#f6f9fd;border:1px solid #d8e3ef;box-shadow:0 22px 60px rgba(0,0,0,.20)}
+.rr-light-workspace label{color:#34445c}.rr-light-workspace input,.rr-light-workspace select,.rr-light-workspace textarea{background:white;color:#152239;border-color:#c9d7e7}.rr-light-workspace .note{background:#edf4fb;color:#42536b}
+@media(max-width:980px){.rr-shell{grid-template-columns:88px minmax(0,1fr)}.rr-sidebar{padding:18px 10px}.rr-sidebar-logo{width:62px;height:62px;object-fit:cover;object-position:left}.rr-user-card{padding:8px;justify-content:center}.rr-user-card>div:last-child{display:none}.rr-side-nav button span.label{display:none}.rr-side-nav button{justify-content:center}.rr-sidebar-bottom .label{display:none}.rr-launch-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:680px){.rr-shell{display:block}.rr-sidebar{position:static;height:auto;display:flex;gap:10px;padding:10px;overflow:auto;border-right:0;border-bottom:1px solid #203650}.rr-sidebar-logo,.rr-user-card,.rr-sidebar-bottom{display:none}.rr-side-nav{display:flex;min-width:max-content}.rr-side-nav button{width:auto}.rr-side-nav button span.label{display:inline}.rr-topbar{padding:10px 14px}.rr-content{padding:0 12px 32px}.rr-launch-grid{grid-template-columns:1fr}.rr-tab-hero{min-height:250px;padding:22px}}
+
 </style>
 </head>
 <body>
@@ -769,26 +811,46 @@ body{
     </div>
 
     <div id="loginMessage" class="note" style="display:none"></div>
-    <div style="margin-top:12px;font-size:10px;color:#52657c">Build: visual-refresh-1</div>
+    <div style="margin-top:12px;font-size:10px;color:#52657c">Build: app-shell-framework-1</div>
   </div>
 </section>
 
 
 
-<section id="dashboardScreen" style="display:none">
-  <nav class="app-nav">
-    <button id="navNewProject" class="active">✨ New Project</button>
-    <button id="navSavedProjects">📁 Saved Projects</button>
-    <button id="navPreferredAddresses">📍 Preferred Addresses</button>
-    <button id="navProfile">👤 Profile</button>
-    <div class="nav-spacer"></div>
-    <span id="navUserLabel" style="color:#8fa3bb;font-size:13px"></span>
-    <span id="dashboardWelcome" style="display:none"></span>
-    <button id="dashboardLogoutBtn" class="secondary">Log out</button>
-  </nav>
 
-  <section id="newProjectView" class="app-view active">
+<section id="dashboardScreen" style="display:none">
+  <div class="rr-shell">
+    <aside class="rr-sidebar">
+      <img class="rr-sidebar-logo" src="routeroush-logo.png" alt="RouteRoush">
+      <div class="rr-user-card">
+        <div class="rr-avatar">RR</div>
+        <div><strong id="rrSidebarName">RouteRoush User</strong><small id="rrSidebarEmail"></small></div>
+      </div>
+      <nav class="rr-side-nav">
+        <button id="navNewProject" class="active">✨ <span class="label">New Project</span></button>
+        <button id="navSavedProjects">📁 <span class="label">Saved Projects</span></button>
+        <button id="navPreferredAddresses">📍 <span class="label">Preferred Addresses</span></button>
+        <button id="navProfile">👤 <span class="label">Profile</span></button>
+      </nav>
+      <div class="rr-sidebar-bottom">
+        <button id="dashboardLogoutBtn" class="secondary">↪ <span class="label">Log out</span></button>
+      </div>
+    </aside>
+    <main class="rr-main">
+      <header class="rr-topbar">
+        <div class="rr-topbar-title"><strong id="navUserLabel">RouteRoush</strong><small>Plan smarter. Drive less.</small></div>
+        <div class="rr-topbar-actions"><span id="dashboardWelcome" style="display:none"></span></div>
+      </header>
+      <div class="rr-content">
+        <section id="newProjectView" class="app-view active">
     <div class="dashboard-single">
+      <div class="rr-tab-hero">
+        <div>
+          <div class="kicker">Route workspace</div>
+          <h1>Create a New Project</h1>
+          <p>Build, schedule, and optimize a multi-day route from one focused workspace.</p>
+        </div>
+      </div>
       <div class="visual-hero">
         <img src="routeroush-hero.png" alt="RouteRoush route planning dashboard illustration">
         <div class="visual-hero-copy">
@@ -804,7 +866,13 @@ body{
           <p>Build, schedule, and optimize a multi-day route from one focused workspace.</p>
         </div>
       </div>
-      <div class="card dashboard-card">
+      <div class="rr-launch-grid">
+        <div class="rr-launch-card"><div class="icon">➕</div><h3>Start from scratch</h3><p>Create a completely new route workspace.</p></div>
+        <div class="rr-launch-card"><div class="icon">📁</div><h3>Use a saved project</h3><p>Continue from one of your previous plans.</p></div>
+        <div class="rr-launch-card"><div class="icon">📍</div><h3>Use saved addresses</h3><p>Add customers and recurring locations quickly.</p></div>
+        <div class="rr-launch-card"><div class="icon">⚡</div><h3>Quick project</h3><p>Use your saved business preferences automatically.</p></div>
+      </div>
+      <div class="rr-light-workspace"><div class="card dashboard-card">
         <button id="newRouteBtn" class="green hero-start-button">+ Start New Project</button>
         <div class="quick-actions">
           <div class="quick-card">
@@ -839,10 +907,17 @@ body{
         </details>
       </div>
     </div>
-  </section>
-
-  <section id="savedProjectsView" class="app-view">
+    </div>
+</section>
+        <section id="savedProjectsView" class="app-view">
     <div class="dashboard-single">
+      <div class="rr-tab-hero">
+        <div>
+          <div class="kicker">Project library</div>
+          <h1>Saved Projects</h1>
+          <p>Open, continue, and organize every route plan from one place.</p>
+        </div>
+      </div>
       <div class="section-heading">
         <h1>Saved Projects</h1>
         <p>Open, continue, or delete your saved route plans.</p>
@@ -873,9 +948,15 @@ body{
         </div>
     </div>
   </section>
-
-  <section id="preferredAddressesView" class="app-view">
+        <section id="preferredAddressesView" class="app-view">
     <div class="dashboard-single">
+      <div class="rr-tab-hero">
+        <div>
+          <div class="kicker">Address book</div>
+          <h1>Preferred Addresses</h1>
+          <p>Save customers and recurring locations, then reuse them as a depot or route stop.</p>
+        </div>
+      </div>
       <div class="section-heading">
         <h1>Preferred Addresses</h1>
         <p>Save recurring customers, offices, and service locations.</p>
@@ -925,9 +1006,15 @@ body{
       </div>
     </div>
   </section>
-
-  <section id="profileView" class="app-view">
+        <section id="profileView" class="app-view">
     <div class="dashboard-single">
+      <div class="rr-tab-hero">
+        <div>
+          <div class="kicker">Workspace settings</div>
+          <h1>Business Preferences</h1>
+          <p>Set your schedule, regional settings, notifications, and route defaults once.</p>
+        </div>
+      </div>
       <div class="section-heading">
         <h1>Your Profile</h1>
         <p>Manage your personal and business information.</p>
@@ -1045,7 +1132,10 @@ body{
     <div id="resetPasswordMessage" class="note" style="display:none"></div>
   </div>
 </section>
-
+      </div>
+    </main>
+  </div>
+</section>
 <section id="appScreen">
   <div class="planner-top-actions">
     <button id="backDashboardBtn" class="secondary">← Back to tabs</button>
@@ -1247,6 +1337,8 @@ const navSavedProjects = document.getElementById('navSavedProjects');
 const navPreferredAddresses = document.getElementById('navPreferredAddresses');
 const navProfile = document.getElementById('navProfile');
 const navUserLabel = document.getElementById('navUserLabel');
+const rrSidebarName=document.getElementById('rrSidebarName');
+const rrSidebarEmail=document.getElementById('rrSidebarEmail');
 const newProjectView = document.getElementById('newProjectView');
 const savedProjectsView = document.getElementById('savedProjectsView');
 const preferredAddressesView = document.getElementById('preferredAddressesView');
@@ -1355,10 +1447,7 @@ function showLoginScreen(){
   topUserEmail.textContent='';
 }
 function showDashboardScreen(user,profile){
-  if(recoveryMode){
-    showResetPasswordScreen();
-    return;
-  }
+  if(recoveryMode){showResetPasswordScreen();return;}
   loginScreen.style.display='none';
   resetPasswordScreen.style.display='none';
   appScreen.style.display='none';
@@ -1367,13 +1456,16 @@ function showDashboardScreen(user,profile){
   const first=profile?.first_name||user?.user_metadata?.first_name||'';
   const last=profile?.last_name||user?.user_metadata?.last_name||'';
   const business=profile?.business_name||user?.user_metadata?.business_name||'';
+  const displayName=business||[first,last].filter(Boolean).join(' ')||'RouteRoush User';
 
-  navUserLabel.textContent=business || [first,last].filter(Boolean).join(' ') || user?.email || '';
+  navUserLabel.textContent=displayName;
+  rrSidebarName.textContent=displayName;
+  rrSidebarEmail.textContent=user?.email||'';
   dashboardWelcome.textContent=`Welcome${first?`, ${first}`:''}`;
+
   profileFirstName.value=first;
   profileLastName.value=last;
   profileBusinessName.value=business;
-
   showDashboardTab('new');
 }
 

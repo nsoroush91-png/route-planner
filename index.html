@@ -976,55 +976,328 @@ body{
   .rr-tab-hero{min-height:290px;padding:24px}
 }
 
+
+/* Professional RouteRoush login */
+#loginScreen{
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:28px;
+  background:
+    radial-gradient(circle at 82% 12%,rgba(38,211,255,.10),transparent 28%),
+    radial-gradient(circle at 12% 10%,rgba(124,58,237,.13),transparent 30%),
+    linear-gradient(180deg,#04101d,#071827);
+}
+.rr-login-shell{
+  width:min(1420px,100%);
+  min-height:790px;
+  display:grid;
+  grid-template-columns:1.05fr .95fr;
+  overflow:hidden;
+  border:1px solid #213c5c;
+  border-radius:28px;
+  background:#071525;
+  box-shadow:0 34px 110px rgba(0,0,0,.46);
+}
+.rr-login-marketing{
+  position:relative;
+  overflow:hidden;
+  padding:48px;
+  background:
+    linear-gradient(180deg,rgba(3,11,21,.15),rgba(3,11,21,.72)),
+    linear-gradient(90deg,rgba(3,11,21,.92),rgba(3,11,21,.20)),
+    url('routeroush-dashboard-bg.png');
+  background-size:cover;
+  background-position:center;
+}
+.rr-login-marketing::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:
+    radial-gradient(circle at 82% 30%,rgba(38,211,255,.15),transparent 26%),
+    radial-gradient(circle at 28% 82%,rgba(124,58,237,.18),transparent 30%);
+  pointer-events:none;
+}
+.rr-login-brand{
+  position:relative;
+  z-index:2;
+  width:210px;
+  max-width:100%;
+  padding:7px;
+  border-radius:14px;
+  background:white;
+  box-shadow:0 14px 35px rgba(0,0,0,.25);
+}
+.rr-login-copy{
+  position:relative;
+  z-index:2;
+  max-width:650px;
+  margin-top:52px;
+}
+.rr-login-copy h1{
+  margin:0;
+  font-size:clamp(42px,5vw,72px);
+  line-height:.98;
+  letter-spacing:-.055em;
+}
+.rr-login-copy h1 span{
+  background:linear-gradient(90deg,#27d4d4,#3295ff,#9b4dff);
+  -webkit-background-clip:text;
+  background-clip:text;
+  color:transparent;
+}
+.rr-login-copy>p{
+  max-width:520px;
+  margin:22px 0 0;
+  color:#c4d3e5;
+  font-size:18px;
+  line-height:1.65;
+}
+.rr-login-features{
+  position:relative;
+  z-index:2;
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:16px;
+  margin-top:38px;
+}
+.rr-login-feature{
+  display:grid;
+  grid-template-columns:52px 1fr;
+  gap:13px;
+  align-items:start;
+  padding:15px;
+  border:1px solid rgba(74,110,151,.34);
+  border-radius:15px;
+  background:rgba(7,21,38,.70);
+  backdrop-filter:blur(10px);
+}
+.rr-login-feature .icon{
+  width:52px;height:52px;
+  display:grid;place-items:center;
+  border-radius:14px;
+  font-size:24px;
+  background:linear-gradient(135deg,rgba(38,211,255,.17),rgba(124,58,237,.23));
+}
+.rr-login-feature strong{display:block;margin-bottom:5px}
+.rr-login-feature small{color:#9db0c8;line-height:1.45}
+.rr-login-form-side{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:48px;
+  background:
+    radial-gradient(circle at 100% 100%,rgba(38,211,255,.09),transparent 30%),
+    linear-gradient(145deg,#0a1a2e,#071321);
+}
+.rr-login-panel{
+  width:min(590px,100%);
+  padding:36px;
+  border:1px solid #314b6b;
+  border-radius:24px;
+  background:linear-gradient(145deg,rgba(16,32,55,.95),rgba(8,21,37,.97));
+  box-shadow:0 28px 80px rgba(0,0,0,.30);
+}
+.rr-login-icon{
+  width:88px;
+  display:block;
+  margin:0 auto 20px;
+}
+.rr-login-panel h2{
+  margin:0;
+  text-align:center;
+  font-size:32px;
+}
+.rr-login-subtitle{
+  margin:8px 0 25px;
+  text-align:center;
+  color:#9fb0c7;
+}
+.rr-google-btn{
+  width:100%;
+  min-height:54px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:12px;
+  margin-bottom:18px;
+  border-radius:12px;
+  color:#162238;
+  background:white;
+  border:1px solid #d9e2ee;
+  font-weight:800;
+  font-size:15px;
+}
+.rr-google-btn:hover{background:#f3f7fb}
+.rr-google-logo{
+  width:22px;height:22px;
+}
+.rr-auth-divider{
+  display:flex;
+  align-items:center;
+  gap:13px;
+  margin:18px 0;
+  color:#7f93aa;
+  font-size:12px;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+}
+.rr-auth-divider::before,.rr-auth-divider::after{
+  content:"";
+  flex:1;
+  height:1px;
+  background:#29415e;
+}
+.rr-login-panel .auth-tabs{
+  margin-bottom:18px;
+}
+.rr-login-panel input{
+  min-height:48px;
+  color:#eef6ff;
+  background:#071525;
+  border-color:#2f4b6d;
+}
+.rr-login-panel input:focus{
+  border-color:#2dbce8;
+  box-shadow:0 0 0 3px rgba(45,188,232,.10);
+}
+.rr-login-panel label{color:#c3d1e1}
+.rr-login-security{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  margin-top:20px;
+  color:#8197b1;
+  font-size:12px;
+}
+.rr-login-build{
+  margin-top:14px;
+  text-align:center;
+  color:#4f657d;
+  font-size:10px;
+}
+@media(max-width:960px){
+  #loginScreen{padding:0}
+  .rr-login-shell{
+    min-height:100vh;
+    grid-template-columns:1fr;
+    border:0;
+    border-radius:0;
+  }
+  .rr-login-marketing{
+    min-height:450px;
+    padding:30px;
+  }
+  .rr-login-copy{margin-top:34px}
+  .rr-login-features{grid-template-columns:1fr 1fr}
+  .rr-login-form-side{padding:30px}
+}
+@media(max-width:620px){
+  .rr-login-marketing{min-height:380px;padding:22px}
+  .rr-login-copy h1{font-size:42px}
+  .rr-login-copy>p{font-size:15px}
+  .rr-login-features{display:none}
+  .rr-login-form-side{padding:18px}
+  .rr-login-panel{padding:24px 18px}
+}
+
 </style>
 </head>
 <body>
+
 <section id="loginScreen">
-  <div class="login-card">
-    <img class="brand-logo login-brand-logo" src="routeroush-logo.png" alt="RouteRoush logo">
-    <h1>Welcome to RouteRoush</h1>
-    <p>Plan smarter. Drive less. Stay organized.</p>
-    <div style="font-size:12px;color:#7f93aa;margin:-10px 0 18px">Multi-day route optimization for real-world schedules</div>
+  <div class="rr-login-shell">
+    <div class="rr-login-marketing">
+      <img class="rr-login-brand" src="routeroush-logo.png" alt="RouteRoush logo">
+      <div class="rr-login-copy">
+        <h1>Smarter routes.<br><span>Stronger business.</span></h1>
+        <p>Plan multi-day routes, manage recurring customers, and keep your weekly field schedule organized from one place.</p>
 
-    <div class="auth-tabs">
-      <button id="showLoginTab" class="auth-tab active">Log in</button>
-      <button id="showSignupTab" class="auth-tab">Create account</button>
-    </div>
-
-    <div id="loginForm">
-      <label>Email</label>
-      <input id="loginEmail" type="email" autocomplete="email" placeholder="you@example.com">
-      <label>Password</label>
-      <input id="loginPassword" type="password" autocomplete="current-password" placeholder="Your password">
-      <button id="loginOnlyBtn" class="green" style="margin-top:14px">Log in</button>
-      <button id="forgotPasswordBtn" class="secondary" style="margin-top:9px">Forgot password?</button>
-    </div>
-
-    <div id="signupForm" class="signup-only">
-      <div class="row">
-        <div>
-          <label>First name</label>
-          <input id="firstName" type="text" autocomplete="given-name" placeholder="First name">
-        </div>
-        <div>
-          <label>Last name</label>
-          <input id="lastName" type="text" autocomplete="family-name" placeholder="Last name">
+        <div class="rr-login-features">
+          <div class="rr-login-feature">
+            <div class="icon">📍</div>
+            <div><strong>Optimize Routes</strong><small>Reduce unnecessary driving and organize every stop.</small></div>
+          </div>
+          <div class="rr-login-feature">
+            <div class="icon">📅</div>
+            <div><strong>Weekly Planning</strong><small>Build practical multi-day schedules around your workweek.</small></div>
+          </div>
+          <div class="rr-login-feature">
+            <div class="icon">👥</div>
+            <div><strong>Customer Management</strong><small>Save addresses and contact details for recurring visits.</small></div>
+          </div>
+          <div class="rr-login-feature">
+            <div class="icon">✉️</div>
+            <div><strong>Smart Notifications</strong><small>Prepare estimated-arrival updates for customers.</small></div>
+          </div>
         </div>
       </div>
-      <label>Business name</label>
-      <input id="businessName" type="text" autocomplete="organization" placeholder="Company or business">
-      <label>Email</label>
-      <input id="signupEmail" type="email" autocomplete="email" placeholder="you@example.com">
-      <label>Password</label>
-      <input id="signupPassword" type="password" autocomplete="new-password" placeholder="At least 8 characters">
-      <button id="signupOnlyBtn" style="margin-top:14px">Create account</button>
-      <button id="resendConfirmationBtn" class="secondary" style="margin-top:9px">Resend confirmation email</button>
     </div>
 
-    <div id="loginMessage" class="note" style="display:none"></div>
-    <div style="margin-top:12px;font-size:10px;color:#52657c">Build: neon-dashboard-1</div>
+    <div class="rr-login-form-side">
+      <div class="rr-login-panel">
+        <img class="rr-login-icon" src="routeroush-logo.png" alt="">
+        <h2>Welcome back</h2>
+        <p class="rr-login-subtitle">Log in to your RouteRoush account</p>
+
+        <button id="googleLoginBtn" class="rr-google-btn">
+          <svg class="rr-google-logo" viewBox="0 0 24 24" aria-hidden="true">
+            <path fill="#4285F4" d="M21.6 12.23c0-.75-.07-1.47-.19-2.16H12v4.09h5.38a4.6 4.6 0 0 1-1.99 3.02v2.51h3.23c1.89-1.74 2.98-4.3 2.98-7.46z"/>
+            <path fill="#34A853" d="M12 22c2.7 0 4.96-.9 6.62-2.43l-3.23-2.51c-.9.6-2.04.95-3.39.95-2.61 0-4.82-1.76-5.61-4.13H3.06v2.59A10 10 0 0 0 12 22z"/>
+            <path fill="#FBBC05" d="M6.39 13.88A6.01 6.01 0 0 1 6.08 12c0-.65.11-1.28.31-1.88V7.53H3.06A10 10 0 0 0 2 12c0 1.61.38 3.13 1.06 4.47l3.33-2.59z"/>
+            <path fill="#EA4335" d="M12 5.99c1.47 0 2.79.51 3.83 1.5l2.87-2.87C16.95 2.99 14.7 2 12 2a10 10 0 0 0-8.94 5.53l3.33 2.59C7.18 7.75 9.39 5.99 12 5.99z"/>
+          </svg>
+          Continue with Google
+        </button>
+
+        <div class="rr-auth-divider">or continue with email</div>
+
+        <div class="auth-tabs">
+          <button id="showLoginTab" class="auth-tab active">Log in</button>
+          <button id="showSignupTab" class="auth-tab">Create account</button>
+        </div>
+
+        <div id="loginForm">
+          <label>Email address</label>
+          <input id="loginEmail" type="email" autocomplete="email" placeholder="you@example.com">
+          <label>Password</label>
+          <input id="loginPassword" type="password" autocomplete="current-password" placeholder="Your password">
+          <button id="loginOnlyBtn" class="green" style="margin-top:14px">Log in</button>
+          <button id="forgotPasswordBtn" class="secondary" style="margin-top:9px">Forgot password?</button>
+        </div>
+
+        <div id="signupForm" class="signup-only">
+          <div class="row">
+            <div>
+              <label>First name</label>
+              <input id="firstName" type="text" autocomplete="given-name" placeholder="First name">
+            </div>
+            <div>
+              <label>Last name</label>
+              <input id="lastName" type="text" autocomplete="family-name" placeholder="Last name">
+            </div>
+          </div>
+          <label>Business name</label>
+          <input id="businessName" type="text" autocomplete="organization" placeholder="Company or business">
+          <label>Email</label>
+          <input id="signupEmail" type="email" autocomplete="email" placeholder="you@example.com">
+          <label>Password</label>
+          <input id="signupPassword" type="password" autocomplete="new-password" placeholder="At least 8 characters">
+          <button id="signupOnlyBtn" style="margin-top:14px">Create account</button>
+          <button id="resendConfirmationBtn" class="secondary" style="margin-top:9px">Resend confirmation email</button>
+        </div>
+
+        <div id="loginMessage" class="note" style="display:none"></div>
+        <div class="rr-login-security">🛡 Your authentication is securely handled by Supabase</div>
+        <div class="rr-login-build">Build: google-login-1</div>
+      </div>
+    </div>
   </div>
 </section>
+
 
 
 
@@ -1634,6 +1907,7 @@ const signupOnlyBtn = document.getElementById('signupOnlyBtn');
 const resendConfirmationBtn = document.getElementById('resendConfirmationBtn');
 const loginMessage = document.getElementById('loginMessage');
 const forgotPasswordBtn = document.getElementById('forgotPasswordBtn');
+const googleLoginBtn = document.getElementById('googleLoginBtn');
 const resetPasswordScreen = document.getElementById('resetPasswordScreen');
 const newPassword = document.getElementById('newPassword');
 const confirmNewPassword = document.getElementById('confirmNewPassword');
@@ -2713,6 +2987,38 @@ saveProfileBtn.onclick=async()=>{
   finally{saveProfileBtn.disabled=false;saveProfileBtn.textContent='Save Preferences'}
 };
 dashboardLogoutBtn.onclick=async()=>{await supabaseClient.auth.signOut();showLoginScreen();};
+
+
+googleLoginBtn.onclick=async()=>{
+  googleLoginBtn.disabled=true;
+  googleLoginBtn.textContent='Connecting to Google...';
+
+  try{
+    const {error}=await supabaseClient.auth.signInWithOAuth({
+      provider:'google',
+      options:{
+        redirectTo:'https://routeroush.com/'
+      }
+    });
+
+    if(error){
+      showLoginMessage(error.message,true);
+      googleLoginBtn.disabled=false;
+      googleLoginBtn.innerHTML=`
+        <svg class="rr-google-logo" viewBox="0 0 24 24" aria-hidden="true">
+          <path fill="#4285F4" d="M21.6 12.23c0-.75-.07-1.47-.19-2.16H12v4.09h5.38a4.6 4.6 0 0 1-1.99 3.02v2.51h3.23c1.89-1.74 2.98-4.3 2.98-7.46z"/>
+          <path fill="#34A853" d="M12 22c2.7 0 4.96-.9 6.62-2.43l-3.23-2.51c-.9.6-2.04.95-3.39.95-2.61 0-4.82-1.76-5.61-4.13H3.06v2.59A10 10 0 0 0 12 22z"/>
+          <path fill="#FBBC05" d="M6.39 13.88A6.01 6.01 0 0 1 6.08 12c0-.65.11-1.28.31-1.88V7.53H3.06A10 10 0 0 0 2 12c0 1.61.38 3.13 1.06 4.47l3.33-2.59z"/>
+          <path fill="#EA4335" d="M12 5.99c1.47 0 2.79.51 3.83 1.5l2.87-2.87C16.95 2.99 14.7 2 12 2a10 10 0 0 0-8.94 5.53l3.33 2.59C7.18 7.75 9.39 5.99 12 5.99z"/>
+        </svg>
+        Continue with Google`;
+    }
+  }catch(error){
+    showLoginMessage(error?.message||'Could not start Google sign-in.',true);
+    googleLoginBtn.disabled=false;
+    googleLoginBtn.textContent='Continue with Google';
+  }
+};
 
 loginOnlyBtn.onclick=async()=>{
   const email=loginEmail.value.trim();

@@ -596,6 +596,24 @@ body{
   .saved-address-home-actions{justify-content:flex-start}
 }
 
+
+.preferences-grid{display:grid;gap:16px}
+.pref-card{border:1px solid #29415e;border-radius:16px;background:#0d1a2d;padding:18px}
+.pref-card h3{margin:0 0 14px}
+.pref-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.pref-grid.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+.pref-days{display:grid;gap:8px}
+.pref-day{display:grid;grid-template-columns:160px 1fr 1fr;gap:10px;align-items:end;padding:10px;border:1px solid #263d5b;border-radius:12px;background:#0a1728}
+.pref-day-name{display:flex;gap:8px;align-items:center;font-weight:700}
+.pref-day-name input{width:auto}
+.pref-toggle{display:flex;justify-content:space-between;gap:15px;align-items:center;padding:10px 0;border-bottom:1px solid #263d5b}
+.pref-toggle:last-child{border-bottom:0}
+.pref-toggle input{width:auto}
+.pref-actions{display:flex;justify-content:flex-end;gap:10px;align-items:center;position:sticky;bottom:10px;padding:12px;border:1px solid #29415e;border-radius:14px;background:rgba(8,20,35,.95)}
+.pref-actions button{width:auto}
+#profileMessage{margin-right:auto;color:#9fb0c7}
+@media(max-width:760px){.pref-grid,.pref-grid.three{grid-template-columns:1fr}.pref-day{grid-template-columns:1fr}}
+
 </style>
 </head>
 <body>
@@ -642,7 +660,7 @@ body{
     </div>
 
     <div id="loginMessage" class="note" style="display:none"></div>
-    <div style="margin-top:12px;font-size:10px;color:#52657c">Build: saved-address-picker-1</div>
+    <div style="margin-top:12px;font-size:10px;color:#52657c">Build: business-preferences-1</div>
   </div>
 </section>
 
@@ -763,23 +781,90 @@ body{
         <h1>Your Profile</h1>
         <p>Manage your personal and business information.</p>
       </div>
-      <div class="card dashboard-card">
-        <h2>Your Profile</h2>
-        <div class="profile-grid">
-          <div>
-            <label>First name</label>
-            <input id="profileFirstName">
-          </div>
-          <div>
-            <label>Last name</label>
-            <input id="profileLastName">
-          </div>
-        </div>
-        <label>Business name</label>
-        <input id="profileBusinessName">
-        <button id="saveProfileBtn" class="green" style="margin-top:12px">Save Profile</button>
-        <div id="profileMessage" class="note" style="display:none"></div>
+      
+<div class="preferences-grid">
+  <div class="pref-card">
+    <h3>🏢 Business Information</h3>
+    <div class="pref-grid">
+      <div><label>First name</label><input id="profileFirstName"></div>
+      <div><label>Last name</label><input id="profileLastName"></div>
+      <div><label>Business name</label><input id="profileBusinessName"></div>
+      <div><label>Business type</label>
+        <select id="prefBusinessType">
+          <option value="">Select type</option><option>HVAC</option><option>Plumbing</option>
+          <option>Electrical</option><option>Solar</option><option>Pest Control</option>
+          <option>Cleaning</option><option>Home Inspection</option><option>Healthcare</option>
+          <option>Delivery</option><option>Other</option>
+        </select>
       </div>
+      <div><label>Phone</label><input id="prefBusinessPhone" type="tel"></div>
+      <div><label>Website</label><input id="prefBusinessWebsite" type="url"></div>
+    </div>
+  </div>
+
+  <div class="pref-card">
+    <h3>📅 Weekly Schedule</h3>
+    <div id="weeklyScheduleBody" class="pref-days"></div>
+  </div>
+
+  <div class="pref-card">
+    <h3>⏱ Working Preferences</h3>
+    <div class="pref-grid three">
+      <div><label>Lunch start</label><select id="prefLunchStart"></select></div>
+      <div><label>Lunch end</label><select id="prefLunchEnd"></select></div>
+      <div><label>Default service time</label>
+        <select id="prefServiceMinutes"><option value="20">20 min</option><option value="30">30 min</option><option value="40" selected>40 min</option><option value="45">45 min</option><option value="60">60 min</option><option value="90">90 min</option></select>
+      </div>
+      <div><label>Buffer time</label>
+        <select id="prefBufferMinutes"><option value="0">None</option><option value="5">5 min</option><option value="10" selected>10 min</option><option value="15">15 min</option><option value="30">30 min</option></select>
+      </div>
+      <div><label>Max stops/day</label><input id="prefMaxStops" type="number" min="1" value="10"></div>
+      <div><label>Max driving/day</label>
+        <select id="prefMaxDrivingMinutes"><option value="120">2 hours</option><option value="180" selected>3 hours</option><option value="240">4 hours</option><option value="300">5 hours</option></select>
+      </div>
+      <div><label>Max workday</label>
+        <select id="prefMaxWorkMinutes"><option value="420">7 hours</option><option value="480" selected>8 hours</option><option value="540">9 hours</option><option value="600">10 hours</option></select>
+      </div>
+    </div>
+  </div>
+
+  <div class="pref-card">
+    <h3>🌍 Regional Settings</h3>
+    <div class="pref-grid three">
+      <div><label>Region</label><select id="prefRegion"><option value="US">United States</option><option value="CA">Canada</option><option value="UK">United Kingdom</option><option value="EU">Europe</option><option value="AU">Australia</option><option value="OTHER">Other</option></select></div>
+      <div><label>Time zone</label><input id="prefTimezone"></div>
+      <div><label>Distance</label><select id="prefDistanceUnit"><option value="miles">Miles</option><option value="kilometers">Kilometers</option></select></div>
+      <div><label>Time format</label><select id="prefTimeFormat"><option value="12h">12-hour</option><option value="24h">24-hour</option></select></div>
+      <div><label>Date format</label><select id="prefDateFormat"><option>MM/DD/YYYY</option><option>DD/MM/YYYY</option><option>YYYY-MM-DD</option></select></div>
+      <div><label>Temperature</label><select id="prefTemperatureUnit"><option value="F">Fahrenheit</option><option value="C">Celsius</option></select></div>
+    </div>
+  </div>
+
+  <div class="pref-card">
+    <h3>🔔 Notifications</h3>
+    <div class="pref-toggle"><span>Prepare customer arrival emails</span><input id="prefSendArrivalEmails" type="checkbox" checked></div>
+    <div class="pref-toggle"><span>Weekly schedule email</span><input id="prefSendWeeklyEmail" type="checkbox"></div>
+    <div class="pref-toggle"><span>Delay notifications</span><input id="prefSendDelayEmails" type="checkbox"></div>
+  </div>
+
+  <div class="pref-card">
+    <h3>⚙️ Optimization</h3>
+    <div class="pref-grid">
+      <div><label>Goal</label><select id="prefOptimizationGoal"><option value="balanced">Balanced</option><option value="driving_time">Minimize driving</option><option value="customer_priority">Priority first</option><option value="working_days">Minimize workdays</option></select></div>
+      <div><label>Overtime</label><select id="prefAllowOvertime"><option value="false">Do not allow</option><option value="true">Allow</option></select></div>
+    </div>
+    <div class="pref-toggle"><span>Group nearby cities</span><input id="prefGroupCities" type="checkbox" checked></div>
+    <div class="pref-toggle"><span>Avoid toll roads</span><input id="prefAvoidTolls" type="checkbox"></div>
+    <div class="pref-toggle"><span>Avoid highways</span><input id="prefAvoidHighways" type="checkbox"></div>
+  </div>
+
+  <div class="pref-actions">
+    <div id="profileMessage"></div>
+    <button id="resetPreferencesBtn" class="secondary">Restore defaults</button>
+    <button id="saveProfileBtn" class="green">Save Preferences</button>
+  </div>
+</div>
+
     </div>
   </section>
 </section>
@@ -1020,6 +1105,34 @@ const profileLastName = document.getElementById('profileLastName');
 const profileBusinessName = document.getElementById('profileBusinessName');
 const saveProfileBtn = document.getElementById('saveProfileBtn');
 const profileMessage = document.getElementById('profileMessage');
+
+const prefBusinessType=document.getElementById('prefBusinessType');
+const prefBusinessPhone=document.getElementById('prefBusinessPhone');
+const prefBusinessWebsite=document.getElementById('prefBusinessWebsite');
+const weeklyScheduleBody=document.getElementById('weeklyScheduleBody');
+const prefLunchStart=document.getElementById('prefLunchStart');
+const prefLunchEnd=document.getElementById('prefLunchEnd');
+const prefServiceMinutes=document.getElementById('prefServiceMinutes');
+const prefBufferMinutes=document.getElementById('prefBufferMinutes');
+const prefMaxStops=document.getElementById('prefMaxStops');
+const prefMaxDrivingMinutes=document.getElementById('prefMaxDrivingMinutes');
+const prefMaxWorkMinutes=document.getElementById('prefMaxWorkMinutes');
+const prefRegion=document.getElementById('prefRegion');
+const prefTimezone=document.getElementById('prefTimezone');
+const prefDistanceUnit=document.getElementById('prefDistanceUnit');
+const prefTimeFormat=document.getElementById('prefTimeFormat');
+const prefDateFormat=document.getElementById('prefDateFormat');
+const prefTemperatureUnit=document.getElementById('prefTemperatureUnit');
+const prefSendArrivalEmails=document.getElementById('prefSendArrivalEmails');
+const prefSendWeeklyEmail=document.getElementById('prefSendWeeklyEmail');
+const prefSendDelayEmails=document.getElementById('prefSendDelayEmails');
+const prefOptimizationGoal=document.getElementById('prefOptimizationGoal');
+const prefAllowOvertime=document.getElementById('prefAllowOvertime');
+const prefGroupCities=document.getElementById('prefGroupCities');
+const prefAvoidTolls=document.getElementById('prefAvoidTolls');
+const prefAvoidHighways=document.getElementById('prefAvoidHighways');
+const resetPreferencesBtn=document.getElementById('resetPreferencesBtn');
+
 
 const savedAddressName = document.getElementById('savedAddressName');
 const savedAddressEmail = document.getElementById('savedAddressEmail');
@@ -1557,6 +1670,7 @@ Thank you.`;
 }
 
 function offerArrivalEmails(){
+  if(currentBusinessPreferences && !currentBusinessPreferences.send_arrival_emails)return;
   const rows=[];
   const [h,m]=els.start.value.split(':').map(Number);
   const start=h*60+m;
@@ -1949,6 +2063,88 @@ window.useSavedAddressAsStop=async id=>{
   }
 };
 
+
+const DEFAULT_PREFS={
+  business_type:'',business_phone:'',business_website:'',
+  weekly_schedule:{
+    monday:{enabled:true,start:'08:00',end:'17:00'},tuesday:{enabled:true,start:'08:00',end:'17:00'},
+    wednesday:{enabled:true,start:'08:00',end:'17:00'},thursday:{enabled:true,start:'08:00',end:'17:00'},
+    friday:{enabled:true,start:'08:00',end:'17:00'},saturday:{enabled:false,start:'08:00',end:'17:00'},
+    sunday:{enabled:false,start:'08:00',end:'17:00'}
+  },
+  lunch_start:'12:00',lunch_end:'13:00',default_service_minutes:40,buffer_minutes:10,
+  max_stops_per_day:10,max_driving_minutes:180,max_work_minutes:480,
+  region:'US',timezone:Intl.DateTimeFormat().resolvedOptions().timeZone||'UTC',
+  distance_unit:'miles',time_format:'12h',date_format:'MM/DD/YYYY',temperature_unit:'F',
+  send_arrival_emails:true,send_weekly_email:false,send_delay_emails:false,
+  optimization_goal:'balanced',allow_overtime:false,group_cities:true,avoid_tolls:false,avoid_highways:false
+};
+let currentBusinessPreferences=structuredClone(DEFAULT_PREFS);
+
+function timeOptions(selected){
+  let out='';
+  for(let h=0;h<24;h++)for(const m of [0,15,30,45]){
+    const v=`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+    const label=(prefTimeFormat?.value||'12h')==='24h'?v:`${((h+11)%12)+1}:${String(m).padStart(2,'0')} ${h>=12?'PM':'AM'}`;
+    out+=`<option value="${v}" ${v===selected?'selected':''}>${label}</option>`;
+  }
+  return out;
+}
+function renderSchedule(s){
+  const days=[['monday','Monday'],['tuesday','Tuesday'],['wednesday','Wednesday'],['thursday','Thursday'],['friday','Friday'],['saturday','Saturday'],['sunday','Sunday']];
+  weeklyScheduleBody.innerHTML=days.map(([k,n])=>`<div class="pref-day">
+    <div class="pref-day-name"><input id="work-${k}" type="checkbox" ${s[k]?.enabled?'checked':''}><label for="work-${k}" style="margin:0">${n}</label></div>
+    <div><label>Start</label><select id="start-${k}">${timeOptions(s[k]?.start||'08:00')}</select></div>
+    <div><label>Finish</label><select id="end-${k}">${timeOptions(s[k]?.end||'17:00')}</select></div>
+  </div>`).join('');
+}
+function collectSchedule(){
+  const r={};
+  for(const k of ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'])
+    r[k]={enabled:document.getElementById(`work-${k}`).checked,start:document.getElementById(`start-${k}`).value,end:document.getElementById(`end-${k}`).value};
+  return r;
+}
+function fillPrefs(p={}){
+  currentBusinessPreferences={...structuredClone(DEFAULT_PREFS),...p,weekly_schedule:{...structuredClone(DEFAULT_PREFS.weekly_schedule),...(p.weekly_schedule||{})}};
+  const x=currentBusinessPreferences;
+  prefBusinessType.value=x.business_type;prefBusinessPhone.value=x.business_phone;prefBusinessWebsite.value=x.business_website;
+  prefTimeFormat.value=x.time_format;renderSchedule(x.weekly_schedule);
+  prefLunchStart.innerHTML=timeOptions(x.lunch_start);prefLunchEnd.innerHTML=timeOptions(x.lunch_end);
+  prefServiceMinutes.value=x.default_service_minutes;prefBufferMinutes.value=x.buffer_minutes;prefMaxStops.value=x.max_stops_per_day;
+  prefMaxDrivingMinutes.value=x.max_driving_minutes;prefMaxWorkMinutes.value=x.max_work_minutes;
+  prefRegion.value=x.region;prefTimezone.value=x.timezone;prefDistanceUnit.value=x.distance_unit;prefDateFormat.value=x.date_format;prefTemperatureUnit.value=x.temperature_unit;
+  prefSendArrivalEmails.checked=x.send_arrival_emails;prefSendWeeklyEmail.checked=x.send_weekly_email;prefSendDelayEmails.checked=x.send_delay_emails;
+  prefOptimizationGoal.value=x.optimization_goal;prefAllowOvertime.value=String(x.allow_overtime);prefGroupCities.checked=x.group_cities;prefAvoidTolls.checked=x.avoid_tolls;prefAvoidHighways.checked=x.avoid_highways;
+}
+function collectPrefs(){return{
+  business_type:prefBusinessType.value,business_phone:prefBusinessPhone.value.trim(),business_website:prefBusinessWebsite.value.trim(),
+  weekly_schedule:collectSchedule(),lunch_start:prefLunchStart.value,lunch_end:prefLunchEnd.value,
+  default_service_minutes:+prefServiceMinutes.value,buffer_minutes:+prefBufferMinutes.value,max_stops_per_day:+prefMaxStops.value||10,
+  max_driving_minutes:+prefMaxDrivingMinutes.value,max_work_minutes:+prefMaxWorkMinutes.value,
+  region:prefRegion.value,timezone:prefTimezone.value.trim()||'UTC',distance_unit:prefDistanceUnit.value,time_format:prefTimeFormat.value,date_format:prefDateFormat.value,temperature_unit:prefTemperatureUnit.value,
+  send_arrival_emails:prefSendArrivalEmails.checked,send_weekly_email:prefSendWeeklyEmail.checked,send_delay_emails:prefSendDelayEmails.checked,
+  optimization_goal:prefOptimizationGoal.value,allow_overtime:prefAllowOvertime.value==='true',group_cities:prefGroupCities.checked,avoid_tolls:prefAvoidTolls.checked,avoid_highways:prefAvoidHighways.checked
+}}
+async function loadBusinessPreferences(user){
+  const {data,error}=await supabaseClient.from('business_preferences').select('preferences').eq('user_id',user.id).maybeSingle();
+  fillPrefs(error?DEFAULT_PREFS:(data?.preferences||DEFAULT_PREFS));
+}
+async function saveBusinessPreferences(user){
+  const preferences=collectPrefs();
+  const {error}=await supabaseClient.from('business_preferences').upsert({user_id:user.id,preferences,updated_at:new Date().toISOString()},{onConflict:'user_id'});
+  if(error)throw error;currentBusinessPreferences=preferences;
+}
+function applyPreferencesToNewProject(){
+  const p=currentBusinessPreferences; const days=[['monday',1],['tuesday',2],['wednesday',3],['thursday',4],['friday',5],['saturday',6],['sunday',0]];
+  const first=days.find(([k])=>p.weekly_schedule[k]?.enabled)||days[0];
+  if(els.start)els.start.value=p.weekly_schedule[first[0]].start;if(els.service)els.service.value=p.default_service_minutes;
+  if(els.firstDay)els.firstDay.value=first[1];if(els.days)els.days.value=days.filter(([k])=>p.weekly_schedule[k]?.enabled).length||1;
+}
+prefRegion.onchange=()=>{const intl=prefRegion.value!=='US';prefDistanceUnit.value=intl?'kilometers':'miles';prefTimeFormat.value=intl?'24h':'12h';prefDateFormat.value=intl?'DD/MM/YYYY':'MM/DD/YYYY';prefTemperatureUnit.value=intl?'C':'F';renderSchedule(collectSchedule())};
+prefTimeFormat.onchange=()=>{const s=collectSchedule(),a=prefLunchStart.value,b=prefLunchEnd.value;renderSchedule(s);prefLunchStart.innerHTML=timeOptions(a);prefLunchEnd.innerHTML=timeOptions(b)};
+resetPreferencesBtn.onclick=()=>{fillPrefs(DEFAULT_PREFS);profileMessage.textContent='Defaults restored. Save to keep them.'};
+fillPrefs(DEFAULT_PREFS);
+
 async function loadProfile(user){
   const {data,error}=await supabaseClient.from('profiles').select('*').eq('id',user.id).maybeSingle();
   if(error){console.error(error);return null;}
@@ -1964,6 +2160,7 @@ async function openDashboard(user){
 
   try{
     const profile=await loadProfile(user);
+    await loadBusinessPreferences(user);
     showDashboardScreen(user,profile);
   }catch(error){
     console.error('Profile load failed:',error);
@@ -2012,6 +2209,7 @@ window.deleteDashboardProject=async id=>{
 newRouteBtn.onclick=async()=>{
   await clearMapForLoad();
   els.projectName.value='';
+  applyPreferencesToNewProject();
   const {data}=await supabaseClient.auth.getSession();
   if(data.session?.user)showAppScreen(data.session.user);
 };
@@ -2023,13 +2221,13 @@ backDashboardBtn.onclick=async()=>{
   }
 };
 saveProfileBtn.onclick=async()=>{
-  const {data}=await supabaseClient.auth.getSession();
-  const user=data.session?.user;if(!user)return;
-  const payload={id:user.id,first_name:profileFirstName.value.trim(),last_name:profileLastName.value.trim(),business_name:profileBusinessName.value.trim(),updated_at:new Date().toISOString()};
-  const {error}=await supabaseClient.from('profiles').upsert(payload);
-  profileMessage.style.display='block';profileMessage.textContent=error?error.message:'Profile saved.';
-  profileMessage.style.color=error?'#fda4af':'#86efac';
-  if(!error)await openDashboard(user);
+  const {data}=await supabaseClient.auth.getSession();const user=data.session?.user;if(!user)return;
+  saveProfileBtn.disabled=true;saveProfileBtn.textContent='Saving...';profileMessage.textContent='Saving...';
+  try{
+    const {error}=await supabaseClient.from('profiles').upsert({id:user.id,first_name:profileFirstName.value.trim(),last_name:profileLastName.value.trim(),business_name:profileBusinessName.value.trim(),updated_at:new Date().toISOString()});
+    if(error)throw error;await saveBusinessPreferences(user);profileMessage.textContent='Preferences saved successfully.';
+  }catch(e){profileMessage.textContent=e?.message||'Could not save preferences.'}
+  finally{saveProfileBtn.disabled=false;saveProfileBtn.textContent='Save Preferences'}
 };
 dashboardLogoutBtn.onclick=async()=>{await supabaseClient.auth.signOut();showLoginScreen();};
 

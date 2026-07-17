@@ -1799,8 +1799,82 @@ window.addEventListener('error',event=>{
 'use strict';
 
 const $ = id => document.getElementById(id);
+
+/* ============================================================
+   SERVICE CONFIGURATION
+   Fill these in before launch. With keys empty, the app falls
+   back to OSM/Nominatim which is ONLY acceptable for local dev
+   (their usage policies prohibit production/commercial use).
+   - MapTiler:  https://cloud.maptiler.com  (free: 100k tiles/mo)
+   - Geoapify:  https://www.geoapify.com    (free: 3k requests/day)
+   - OSRM:      public demo is fine for testing; self-host for
+                production (see /table API docs).
+   ============================================================ */
+const CONFIG = {
+  MAPTILER_API_KEY: '',          // e.g. 'AbCdEf123...'
+  GEOAPIFY_API_KEY: '',          // e.g. 'a1b2c3d4...'
+  OSRM_URL: 'https://router.project-osrm.org'
+};
+
+/* --- XSS protection: escape ALL user-supplied text before it
+       enters an HTML template. ------------------------------- */
+function esc(value){
+  return String(value ?? '')
+    .replaceAll('&','&amp;')
+    .replaceAll('<','&lt;')
+    .replaceAll('>','&gt;')
+    .replaceAll('"','&quot;')
+    .replaceAll("'",'&#39;');
+}
+
+/* --- Geocoding wrappers (Geoapify with dev-only fallback) ---- */
+async function geocodeSearch(query){
+  if(CONFIG.GEOAPIFY_API_KEY){
+    const url=`https://api.geoapify.com/v1/geocode/search?text=${encodeURIComponent(query)}&limit=1&filter=countrycode:us&format=json&apiKey=${CONFIG.GEOAPIFY_API_KEY}`;
+    const r=await fetch(url);
+    if(!r.ok)throw new Error('Geocoding service error.');
+    const d=await r.json();
+    if(!d.results?.length)return null;
+    const x=d.results[0];
+    return {lat:x.lat,lon:x.lon,display:x.formatted};
+  }
+  console.warn('RouteRoush: using Nominatim fallback. Set CONFIG.GEOAPIFY_API_KEY before launch.');
+  const r=await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=us&q=${encodeURIComponent(query)}`);
+  const a=await r.json();
+  if(!a.length)return null;
+  return {lat:+a[0].lat,lon:+a[0].lon,display:a[0].display_name};
+}
+async function geocodeReverse(lat,lon){
+  const fallback=`${lat.toFixed(5)}, ${lon.toFixed(5)}`;
+  try{
+    if(CONFIG.GEOAPIFY_API_KEY){
+      const r=await fetch(`https://api.geoapify.com/v1/geocode/reverse?lat=${lat}&lon=${lon}&format=json&apiKey=${CONFIG.GEOAPIFY_API_KEY}`);
+      const d=await r.json();
+      return d.results?.[0]?.formatted||fallback;
+    }
+    const r=await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`);
+    const d=await r.json();
+    return d.display_name||fallback;
+  }catch{return fallback;}
+}
+
+/* --- Supabase helper: current user id for explicit row scoping
+       (defense in depth on top of RLS). ---------------------- */
+async function currentUserId(){
+  const {data}=await supabaseClient.auth.getSession();
+  return data.session?.user?.id||null;
+}
+
 const map = L.map('map').setView([33.49,-111.99],11);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap contributors'}).addTo(map);
+if(CONFIG.MAPTILER_API_KEY){
+  L.tileLayer(`https://api.maptiler.com/maps/streets-v2/256/{z}/{x}/{y}.png?key=${CONFIG.MAPTILER_API_KEY}`,{
+    maxZoom:19,
+    attribution:'&copy; <a href="https://www.maptiler.com/">MapTiler</a> &copy; OpenStreetMap contributors'
+  }).addTo(map);
+}else{
+  console.warn('RouteRoush: using OSM demo tiles. Set CONFIG.MAPTILER_API_KEY before launch.');
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap contributors'}).addTo(map);
+}
 
 const els = {
   modeDepot:$('modeDepot'), modeStop:$('modeStop'), searchText:$('searchText'), searchBtn:$('searchBtn'),
@@ -2010,17 +2084,14 @@ function setMode(v){mode=v;els.modeDepot.classList.toggle('active',v==='depot');
 els.modeDepot.onclick=()=>setMode('depot'); els.modeStop.onclick=()=>setMode('stop');
 
 async function reverse(lat,lon){
-  try{
-    const r=await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`);
-    const d=await r.json(); return d.display_name||`${lat.toFixed(5)}, ${lon.toFixed(5)}`;
-  }catch{return `${lat.toFixed(5)}, ${lon.toFixed(5)}`;}
+  return geocodeReverse(lat,lon);
 }
 async function addPoint(lat,lon,address){
   const addr=address||await reverse(lat,lon);
   if(mode==='depot'){
     if(depotMarker)map.removeLayer(depotMarker);
     depot={lat,lon,address:addr};
-    depotMarker=L.marker([lat,lon],{icon:redIcon,draggable:true}).addTo(map).bindPopup(`<b>Start / return</b><br>${addr}`);
+    depotMarker=L.marker([lat,lon],{icon:redIcon,draggable:true}).addTo(map).bindPopup(`<b>Start / return</b><br>${esc(addr)}`);
     depotMarker.on('dragend',async e=>{const p=e.target.getLatLng();depot.lat=p.lat;depot.lon=p.lng;depot.address=await reverse(p.lat,p.lng);invalidate();renderPoints();});
     setMode('stop');
   }else{
@@ -2037,12 +2108,11 @@ els.searchBtn.onclick=async()=>{
   const q=els.searchText.value.trim(); if(!q)return;
   els.searchStatus.style.display='block';els.searchStatus.textContent='Searching...';els.addSearchBtn.disabled=true;
   try{
-    const r=await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=us&q=${encodeURIComponent(q)}`);
-    const a=await r.json();
-    if(!a.length){els.searchStatus.textContent='No result found.';return;}
-    searchResult={lat:+a[0].lat,lon:+a[0].lon,address:a[0].display_name};
+    const g=await geocodeSearch(q);
+    if(!g){els.searchStatus.textContent='No result found.';return;}
+    searchResult={lat:g.lat,lon:g.lon,address:g.display};
     if(searchMarker)map.removeLayer(searchMarker);
-    searchMarker=L.marker([searchResult.lat,searchResult.lon],{icon:greenIcon}).addTo(map).bindPopup(searchResult.address).openPopup();
+    searchMarker=L.marker([searchResult.lat,searchResult.lon],{icon:greenIcon}).addTo(map).bindPopup(esc(searchResult.address)).openPopup();
     map.setView([searchResult.lat,searchResult.lon],15);
     els.searchStatus.textContent='Result found. Click Add result.';els.addSearchBtn.disabled=false;
   }catch{els.searchStatus.textContent='Search failed. Check internet connection.';}
@@ -2055,7 +2125,7 @@ window.removeStop=removeStop;
 
 function renderPoints(){
   let h=depot
-    ? `<div class="item"><b>Start / return</b>${depot.address}</div>`
+    ? `<div class="item"><b>Start / return</b>${esc(depot.address)}</div>`
     : `<div class="item">No starting point selected.</div>`;
 
   stops.forEach((s,i)=>{
@@ -2066,7 +2136,7 @@ function renderPoints(){
     if(s.priority==null)s.priority='normal';
 
     h+=`<div class="item">
-      <b>Stop ${i+1}</b>${s.address}
+      <b>Stop ${i+1}</b>${esc(s.address)}
       <div class="constraint-grid">
         <div>
           <label>Service minutes</label>
@@ -2114,7 +2184,7 @@ window.updateStopConstraint=(id,key,value)=>{
   stop[key]=key==='serviceMinutes'?Math.max(0,Number(value)||0):value;
   invalidate();
 };
-function invalidate(){plans=[];selected=0;if(routeLine){map.removeLayer(routeLine);routeLine=null;}els.tabs.innerHTML='';els.tbody.innerHTML='';['sStops','sDrive','sFinish','sImprove'].forEach(id=>$(id).textContent='—');}
+function invalidate(){plans=[];selected=0;travelMatrix=null;usedRealRouting=false;if(routeLine){map.removeLayer(routeLine);routeLine=null;}els.tabs.innerHTML='';els.tbody.innerHTML='';['sStops','sDrive','sFinish','sImprove'].forEach(id=>$(id).textContent='—');}
 
 function updateCapacity(){
   const n=stops.length,d=Math.max(1,+els.days.value||1),p=Math.max(1,+els.perDay.value||1);
@@ -2131,7 +2201,55 @@ els.days.oninput=updateCapacity;els.perDay.oninput=updateCapacity;
 function dist(a,b){const R=3958.7613,rad=x=>x*Math.PI/180,dl=rad(b.lat-a.lat),dn=rad(b.lon-a.lon),a1=rad(a.lat),a2=rad(b.lat);const h=Math.sin(dl/2)**2+Math.cos(a1)*Math.cos(a2)*Math.sin(dn/2)**2;return 2*R*Math.asin(Math.sqrt(h));}
 function dayName(x){return ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][x];}
 function factor(clock,wd){const h=clock/60,w=wd===0||wd===6;if(w){if(h<7)return 1.02;if(h<10)return 1.08;if(h<16)return 1.06;if(h<19)return 1.10;return 1.04;}if(h<6.5)return 1.04;if(h<7.5)return 1.14;if(h<9)return 1.30;if(h<11)return 1.16;if(h<15)return 1.10;if(h<18.5)return 1.28;return 1.08;}
-function travel(a,b,elapsed,start,wd){return ((dist(a,b)*1.22+.35)/33*60+2)*factor(start+elapsed,wd);}
+/* --- Real road travel times (OSRM distance/duration matrix) ---
+   buildTravelMatrix() fetches one matrix for depot + all stops.
+   travel() then reads real road minutes from the matrix and
+   applies the time-of-day traffic factor plus a 2-minute
+   parking/walk buffer. If the matrix is unavailable (offline,
+   OSRM down) it falls back to the haversine estimate and the UI
+   tells the user the times are estimates. */
+let travelMatrix=null;   // {durations:[[sec]], distances:[[m]]}
+let usedRealRouting=false;
+
+async function buildTravelMatrix(points){
+  travelMatrix=null;usedRealRouting=false;
+  points.forEach(p=>{delete p._mi;});
+  try{
+    if(points.length<2)return false;
+    const coords=points.map(p=>`${p.lon},${p.lat}`).join(';');
+    const r=await fetch(`${CONFIG.OSRM_URL}/table/v1/driving/${coords}?annotations=duration,distance`);
+    if(!r.ok)throw new Error(`OSRM HTTP ${r.status}`);
+    const j=await r.json();
+    if(j.code!=='Ok'||!j.durations)throw new Error(`OSRM: ${j.code||'no data'}`);
+    points.forEach((p,i)=>{p._mi=i;});
+    travelMatrix={durations:j.durations,distances:j.distances};
+    usedRealRouting=true;
+    return true;
+  }catch(err){
+    console.warn('Road routing unavailable, falling back to estimates:',err);
+    return false;
+  }
+}
+
+function matrixMinutes(a,b){
+  if(travelMatrix&&a._mi!=null&&b._mi!=null){
+    const s=travelMatrix.durations[a._mi][b._mi];
+    if(s!=null)return s/60;
+  }
+  return null;
+}
+function matrixMiles(a,b){
+  if(travelMatrix?.distances&&a._mi!=null&&b._mi!=null){
+    const m=travelMatrix.distances[a._mi][b._mi];
+    if(m!=null)return m/1609.344;
+  }
+  return null;
+}
+function travel(a,b,elapsed,start,wd){
+  const real=matrixMinutes(a,b);
+  if(real!=null)return real*factor(start+elapsed,wd)+2;
+  return ((dist(a,b)*1.22+.35)/33*60+2)*factor(start+elapsed,wd);
+}
 function clockToMinutes(value){
   if(!value)return null;
   const parts=value.split(':').map(Number);
@@ -2177,8 +2295,28 @@ function nearest(items,start,service,wd){
   }
   return r;
 }
-function routeMiles(r){if(!r.length)return 0;let v=dist(depot,r[0]);for(let i=0;i<r.length-1;i++)v+=dist(r[i],r[i+1]);return v+dist(r[r.length-1],depot);}
-function improve(route){let best=[...route],bc=routeMiles(best);for(let pass=0;pass<20;pass++){let changed=false;outer:for(let i=0;i<best.length-1;i++)for(let j=i+1;j<best.length;j++){const c=[...best.slice(0,i),...best.slice(i,j+1).reverse(),...best.slice(j+1)],cc=routeMiles(c);if(cc<bc-.0001){best=c;bc=cc;changed=true;break outer;}}if(!changed)break;}return best;}
+function legMiles(a,b){const m=matrixMiles(a,b);return m!=null?m:dist(a,b);}
+function routeMiles(r){if(!r.length)return 0;let v=legMiles(depot,r[0]);for(let i=0;i<r.length-1;i++)v+=legMiles(r[i],r[i+1]);return v+legMiles(r[r.length-1],depot);}
+/* 2-opt objective: total drive minutes, with a heavy penalty per
+   time-window violation so improvements never trade a shorter
+   route for a missed arrival window. */
+function routeScore(route,start,service,wd){
+  const c=cost(route,start,service,wd);
+  return c.drive + c.violations*10000;
+}
+function improve(route,start,service,wd){
+  let best=[...route],bs=routeScore(best,start,service,wd);
+  for(let pass=0;pass<20;pass++){
+    let changed=false;
+    outer:for(let i=0;i<best.length-1;i++)for(let j=i+1;j<best.length;j++){
+      const c=[...best.slice(0,i),...best.slice(i,j+1).reverse(),...best.slice(j+1)];
+      const cc=routeScore(c,start,service,wd);
+      if(cc<bs-.0001){best=c;bs=cc;changed=true;break outer;}
+    }
+    if(!changed)break;
+  }
+  return best;
+}
 
 function balancedClusters(items,days,firstWeekday){
   const base=Math.floor(items.length/days);
@@ -2241,17 +2379,25 @@ async function optimize(){
     const days=Math.max(1,+els.days.value||1);if(days>stops.length)throw new Error(`You selected ${days} days for only ${stops.length} stops.`);
     const [h,m]=els.start.value.split(':').map(Number),start=h*60+m,service=+els.service.value,first=+els.weekday.value;
     updateCapacity();
+    els.run.textContent='Fetching real road travel times...';
+    await buildTravelMatrix([depot,...stops]);
+    if(!usedRealRouting){
+      els.run.className='message warn';
+      els.run.textContent='Road routing unavailable — using straight-line estimates. Check your connection or OSRM configuration.';
+      await new Promise(r=>setTimeout(r,600));
+      els.run.className='message ok';
+    }
     els.run.textContent=`Clustering ${stops.length} stops into ${days} days...`;
     await new Promise(r=>setTimeout(r,25));
     const groups=balancedClusters(stops,days,first);plans=[];
     for(let i=0;i<groups.length;i++){
       els.run.textContent=`Optimizing day ${i+1} of ${groups.length}...`;await new Promise(r=>setTimeout(r,15));
       const wd=(first+i)%7,before=cost(groups[i],start,service,wd).drive;
-      const route=improve(nearest(groups[i],start,service,wd));
+      const route=improve(nearest(groups[i],start,service,wd),start,service,wd);
       const after=cost(route,start,service,wd);
       plans.push({day:i+1,weekday:wd,route,before,drive:after.drive,elapsed:after.elapsed,violations:after.violations});
     }
-    selected=0;renderTabs();renderPlan();els.run.textContent='Optimization completed.';window.setTimeout(offerArrivalEmails,300);
+    selected=0;renderTabs();renderPlan();els.run.textContent=usedRealRouting?'Optimization completed using real road travel times.':'Optimization completed (estimated travel times).';window.setTimeout(offerArrivalEmails,300);
   }catch(e){els.run.className='message err';els.run.textContent=e.message;}
 }
 els.optimize.onclick=optimize;
@@ -2318,8 +2464,8 @@ function renderPlan(){
     rows+=`<tr>
       <td>${i+1}</td>
       <td>
-        <b>${s.address.split(',')[0]}</b><br>
-        <small>${s.address}</small>${s.contactName?`<br><small>${s.contactName}${s.contactEmail?` · ${s.contactEmail}`:''}</small>`:''}
+        <b>${esc(s.address.split(',')[0])}</b><br>
+        <small>${esc(s.address)}</small>${s.contactName?`<br><small>${esc(s.contactName)}${s.contactEmail?` · ${esc(s.contactEmail)}`:''}</small>`:''}
         <div class="constraint-summary">${chips}</div>
         <button class="edit-stop-btn" onclick="toggleStopEditor('${s.id}')">Edit stop settings</button>
       </td>
@@ -2388,7 +2534,7 @@ function renderPlan(){
   const back=travel(prev,depot,e,start,p.weekday);
   rows+=`<tr>
     <td>↩</td>
-    <td><b>Return to depot</b><br><small>${depot.address}</small></td>
+    <td><b>Return to depot</b><br><small>${esc(depot.address)}</small></td>
     <td>${fmt(start+e+back)}</td>
     <td>—</td>
     <td>${Math.round(back)} min</td>
@@ -2458,11 +2604,11 @@ function offerArrivalEmails(){
     <div class="email-row">
       <label>
         <input type="checkbox" class="arrival-email-check" data-index="${index}" checked>
-        <strong>${item.stop.contactName||item.stop.address.split(',')[0]}</strong>
-        <span style="color:#9fb0c7">${item.to}</span>
+        <strong>${esc(item.stop.contactName||item.stop.address.split(',')[0])}</strong>
+        <span style="color:#9fb0c7">${esc(item.to)}</span>
       </label>
       <div style="margin-top:6px;color:#7dd3fc">Estimated arrival: ${fmt(item.arrival)} · ${item.dayLabel}</div>
-      <textarea id="emailBody-${index}">${item.body}</textarea>
+      <textarea id="emailBody-${index}">${esc(item.body)}</textarea>
     </div>
   `).join('');
 
@@ -2580,10 +2726,11 @@ async function loadPreferredAddresses(){
   const {data,error}=await supabaseClient
     .from('preferred_addresses')
     .select('*')
+    .eq('user_id',await currentUserId())
     .order('name',{ascending:true});
 
   if(error){
-    preferredAddressList.innerHTML=`<div class="note">${error.message}</div>`;
+    preferredAddressList.innerHTML=`<div class="note">${esc(error.message)}</div>`;
     return;
   }
 
@@ -2594,9 +2741,9 @@ async function loadPreferredAddresses(){
 
   preferredAddressList.innerHTML=data.map(item=>`
     <div class="address-card">
-      <h4>${item.name}</h4>
-      <small>${item.address}</small>
-      <small>${item.email||'No email saved'}</small>
+      <h4>${esc(item.name)}</h4>
+      <small>${esc(item.address)}</small>
+      <small>${esc(item.email||'No email saved')}</small>
       <div class="address-card-actions">
         <button onclick="addPreferredAddressToRoute('${item.id}')">Add to route</button>
         <button class="secondary" onclick="editPreferredAddress('${item.id}')">Edit</button>
@@ -2607,7 +2754,7 @@ async function loadPreferredAddresses(){
 }
 
 window.editPreferredAddress=async id=>{
-  const {data,error}=await supabaseClient.from('preferred_addresses').select('*').eq('id',id).single();
+  const {data,error}=await supabaseClient.from('preferred_addresses').select('*').eq('id',id).eq('user_id',await currentUserId()).single();
   if(error)return alert(error.message);
   savedAddressName.value=data.name;
   savedAddressEmail.value=data.email||'';
@@ -2618,21 +2765,20 @@ window.editPreferredAddress=async id=>{
 
 window.deletePreferredAddress=async id=>{
   if(!confirm('Delete this preferred address?'))return;
-  const {error}=await supabaseClient.from('preferred_addresses').delete().eq('id',id);
+  const {error}=await supabaseClient.from('preferred_addresses').delete().eq('id',id).eq('user_id',await currentUserId());
   if(error)return alert(error.message);
   await loadPreferredAddresses();
 };
 
 async function geocodeSavedAddress(address){
-  const response=await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=us&q=${encodeURIComponent(address)}`);
-  const results=await response.json();
-  if(!results.length)throw new Error('Address could not be found on the map.');
-  return {lat:Number(results[0].lat),lon:Number(results[0].lon),display:results[0].display_name};
+  const g=await geocodeSearch(address);
+  if(!g)throw new Error('Address could not be found on the map.');
+  return g;
 }
 
 window.addPreferredAddressToRoute=async id=>{
   try{
-    const {data,error}=await supabaseClient.from('preferred_addresses').select('*').eq('id',id).single();
+    const {data,error}=await supabaseClient.from('preferred_addresses').select('*').eq('id',id).eq('user_id',await currentUserId()).single();
     if(error)throw error;
     const geo=await geocodeSavedAddress(data.address);
 
@@ -2704,10 +2850,11 @@ async function loadNewProjectSavedAddresses(){
   const {data,error}=await supabaseClient
     .from('preferred_addresses')
     .select('*')
+    .eq('user_id',await currentUserId())
     .order('name',{ascending:true});
 
   if(error){
-    newProjectSavedAddressList.innerHTML=`<div class="note">${error.message}</div>`;
+    newProjectSavedAddressList.innerHTML=`<div class="note">${esc(error.message)}</div>`;
     return;
   }
 
@@ -2722,9 +2869,9 @@ async function loadNewProjectSavedAddresses(){
   newProjectSavedAddressList.innerHTML=data.map(item=>`
     <div class="saved-address-home-card">
       <div>
-        <h4>${item.name}</h4>
-        <small>${item.address}</small>
-        <small>${item.email||'No email saved'}</small>
+        <h4>${esc(item.name)}</h4>
+        <small>${esc(item.address)}</small>
+        <small>${esc(item.email||'No email saved')}</small>
       </div>
       <div class="saved-address-home-actions">
         <button class="secondary" onclick="useSavedAddressAsDepot('${item.id}')">Use as starting point</button>
@@ -2743,6 +2890,7 @@ async function getSavedAddressRecord(id){
     .from('preferred_addresses')
     .select('*')
     .eq('id',id)
+    .eq('user_id',await currentUserId())
     .single();
 
   if(error)throw error;
@@ -2927,22 +3075,22 @@ async function openDashboard(user){
     await loadDashboardProjects();
   }catch(error){
     console.error('Projects load failed:',error);
-    dashboardProjects.innerHTML=`<div class="note">Could not load projects: ${error?.message||'Unknown error'}</div>`;
+    dashboardProjects.innerHTML=`<div class="note">Could not load projects: ${esc(error?.message||'Unknown error')}</div>`;
   }
 
   try{
     await loadPreferredAddresses();
   }catch(error){
     console.error('Preferred addresses load failed:',error);
-    preferredAddressList.innerHTML=`<div class="note">Could not load preferred addresses: ${error?.message||'Unknown error'}</div>`;
+    preferredAddressList.innerHTML=`<div class="note">Could not load preferred addresses: ${esc(error?.message||'Unknown error')}</div>`;
   }
 }
 async function loadDashboardProjects(){
-  const {data,error}=await supabaseClient.from('route_projects').select('id,project_name,updated_at').order('updated_at',{ascending:false});
-  if(error){dashboardProjects.innerHTML=`<div class="note">${error.message}</div>`;return;}
+  const {data,error}=await supabaseClient.from('route_projects').select('id,project_name,updated_at').eq('user_id',await currentUserId()).order('updated_at',{ascending:false});
+  if(error){dashboardProjects.innerHTML=`<div class="note">${esc(error.message)}</div>`;return;}
   if(!data.length){dashboardProjects.innerHTML='<div class="note">No saved routes yet. Create your first route.</div>';return;}
   dashboardProjects.innerHTML=data.map(p=>`<div class="project-card">
-    <h4>${p.project_name}</h4>
+    <h4>${esc(p.project_name)}</h4>
     <small>Updated ${new Date(p.updated_at).toLocaleString()}</small>
     <div class="project-card-actions">
       <button onclick="openDashboardProject('${p.id}')">Open</button>
@@ -2951,7 +3099,7 @@ async function loadDashboardProjects(){
   </div>`).join('');
 }
 window.openDashboardProject=async id=>{
-  const {data,error}=await supabaseClient.from('route_projects').select('*').eq('id',id).single();
+  const {data,error}=await supabaseClient.from('route_projects').select('*').eq('id',id).eq('user_id',await currentUserId()).single();
   if(error)return alert(error.message);
   els.projectName.value=data.project_name;
   await restoreProject(data.project_data);
@@ -2959,7 +3107,7 @@ window.openDashboardProject=async id=>{
 };
 window.deleteDashboardProject=async id=>{
   if(!confirm('Delete this saved project?'))return;
-  const {error}=await supabaseClient.from('route_projects').delete().eq('id',id);
+  const {error}=await supabaseClient.from('route_projects').delete().eq('id',id).eq('user_id',await currentUserId());
   if(error)return alert(error.message);
   await loadDashboardProjects();
 };
@@ -3284,7 +3432,7 @@ async function restoreProject(projectData){
   if(settings.service)els.service.value=settings.service;
   if(projectData.depot){
     const d=projectData.depot;depot={lat:d.lat,lon:d.lon,address:d.address};
-    depotMarker=L.marker([d.lat,d.lon],{icon:redIcon,draggable:true}).addTo(map).bindPopup(`<b>Start / return</b><br>${d.address}`);
+    depotMarker=L.marker([d.lat,d.lon],{icon:redIcon,draggable:true}).addTo(map).bindPopup(`<b>Start / return</b><br>${esc(d.address)}`);
   }
   for(const raw of (projectData.stops||[])){
     const s={id:raw.id||String(Date.now()+Math.random()),lat:raw.lat,lon:raw.lon,address:raw.address,marker:null,serviceMinutes:raw.serviceMinutes??40,earliest:raw.earliest||'',latest:raw.latest||'',requiredWeekday:raw.requiredWeekday??'',priority:raw.priority||'normal',contactName:raw.contactName||'',contactEmail:raw.contactEmail||''};
@@ -3313,17 +3461,17 @@ els.saveProjectBtn.onclick=async()=>{
 async function loadProjectList(){
   const user=await updateAuthState();
   if(!user){els.projectSelect.innerHTML='<option value="">Log in to view projects</option>';return;}
-  const {data,error}=await supabaseClient.from('route_projects').select('id,project_name,updated_at').order('updated_at',{ascending:false});
+  const {data,error}=await supabaseClient.from('route_projects').select('id,project_name,updated_at').eq('user_id',await currentUserId()).order('updated_at',{ascending:false});
   if(error)return showProjectMessage(error.message,true);
   els.projectSelect.innerHTML=data.length
-    ? '<option value="">Create a new project</option>'+data.map(p=>`<option value="${p.id}">${p.project_name}</option>`).join('')
+    ? '<option value="">Create a new project</option>'+data.map(p=>`<option value="${esc(p.id)}">${esc(p.project_name)}</option>`).join('')
     : '<option value="">No saved projects</option>';
 }
 els.refreshProjectsBtn.onclick=loadProjectList;
 els.loadProjectBtn.onclick=async()=>{
   const id=els.projectSelect.value;
   if(!id)return showProjectMessage('Select a saved project first.',true);
-  const {data,error}=await supabaseClient.from('route_projects').select('*').eq('id',id).single();
+  const {data,error}=await supabaseClient.from('route_projects').select('*').eq('id',id).eq('user_id',await currentUserId()).single();
   if(error)return showProjectMessage(error.message,true);
   els.projectName.value=data.project_name;await restoreProject(data.project_data);showProjectMessage('Project loaded.');
 };
@@ -3331,7 +3479,7 @@ els.deleteProjectBtn.onclick=async()=>{
   const id=els.projectSelect.value;
   if(!id)return showProjectMessage('Select a saved project first.',true);
   if(!confirm('Delete this saved project?'))return;
-  const {error}=await supabaseClient.from('route_projects').delete().eq('id',id);
+  const {error}=await supabaseClient.from('route_projects').delete().eq('id',id).eq('user_id',await currentUserId());
   if(error)return showProjectMessage(error.message,true);
   els.projectName.value='';showProjectMessage('Project deleted.');await loadProjectList();
 };

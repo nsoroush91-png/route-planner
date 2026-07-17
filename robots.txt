@@ -1,5 +1,6 @@
 User-agent: *
 Allow: /
 Disallow: /reset-password.html
+Disallow: /app.html
 
 Sitemap: https://routeroush.com/sitemap.xml

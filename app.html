@@ -1,0 +1,3523 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>RouteRoush</title>
+  <link rel="canonical" href="https://routeroush.com/">
+  <meta name="routeroush-build" content="login-fix-2026-07-13">
+  <link rel="icon" type="image/png" href="routeroush-logo.png">
+
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  >
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--bg:#07111f;--card:#0f1b2d;--text:#edf4ff;--muted:#9fb0c7;--blue:#38bdf8;--green:#22d3a6;--red:#fb7185;--line:#24364d;--purple:#8b5cf6;--soft:#132238}
+*{box-sizing:border-box} body{margin:0;font-family:Arial,Segoe UI,sans-serif;background:var(--bg);color:var(--text)}
+header{max-width:1350px;margin:auto;padding:22px 20px 10px} h1{margin:0 0 6px} p{margin:0;color:var(--muted)}
+.layout{max-width:1350px;margin:auto;padding:10px 20px 35px;display:grid;grid-template-columns:360px 1fr;gap:18px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:0 10px 30px rgba(15,23,42,.08)}
+.sidebar{padding:18px} label{display:block;font-weight:700;margin:13px 0 7px}
+input,select,button{width:100%;padding:11px;border:1px solid var(--line);border-radius:10px;font-size:14px}
+button{border:none;background:var(--blue);color:white;font-weight:800;cursor:pointer}.green{background:var(--green)}.secondary{background:#eef2ff;color:#1e40af}.red{background:#fff1f2;color:#b42318;border:1px solid #fecdd3}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:9px}.mode{display:flex;gap:8px}.mode button{background:#eef2ff;color:#334155}.mode button.active{background:var(--blue);color:white}
+.note,.message{font-size:12px;line-height:1.45;padding:10px;border-radius:10px;margin-top:10px}.note{background:#f8fafc;color:var(--muted);border:1px solid var(--line)}.message{display:none}.warn{background:#fff7ed;color:#9a3412}.ok{background:#f0fdf4;color:#166534}.err{background:#fff1f0;color:#b42318}
+#map{height:535px;border-radius:18px}.results{margin-top:16px;padding:17px}.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}.tab{width:auto;background:#eef2ff;color:#334155}.tab.active{background:var(--blue);color:white}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:12px}.stat{padding:12px;border:1px solid var(--line);border-radius:12px;background:#fafcff}.stat b{display:block;font-size:20px;margin-top:3px}
+table{width:100%;border-collapse:collapse}th,td{padding:9px;border-bottom:1px solid var(--line);text-align:left;font-size:13px}th{background:#f8fafc}
+.list{max-height:220px;overflow:auto;margin-top:10px}.item{padding:8px 0;border-bottom:1px solid var(--line);font-size:12px}.item b{display:block}
+#printTitle{display:none}
+.auth-panel,.project-panel{margin-top:14px;padding:12px;border:1px solid var(--line);border-radius:12px;background:#fafcff}
+.auth-panel h3,.project-panel h3{margin:0 0 8px;font-size:15px}
+.user-state{font-size:12px;margin-top:8px;color:var(--muted);word-break:break-word}
+.project-list{margin-top:8px}
+
+@media(max-width:900px){.layout{grid-template-columns:1fr}.stats{grid-template-columns:1fr 1fr}}
+@media print{header,.sidebar,#map,.tabs,.actions{display:none!important}.layout{display:block;padding:0}.results{box-shadow:none;border:none}.card{box-shadow:none}#printTitle{display:block;font-size:23px;font-weight:800;margin-bottom:12px}}
+
+#loginScreen{
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:24px;
+  background:
+    radial-gradient(circle at top left, rgba(37,99,235,.18), transparent 38%),
+    radial-gradient(circle at bottom right, rgba(5,150,105,.16), transparent 38%),
+    var(--bg);
+}
+.login-card{
+  width:min(430px,100%);
+  background:#fff;
+  border:1px solid var(--line);
+  border-radius:22px;
+  padding:30px;
+  box-shadow:0 20px 55px rgba(15,23,42,.14);
+}
+.login-logo{
+  width:54px;height:54px;border-radius:15px;
+  display:grid;place-items:center;
+  background:linear-gradient(135deg,var(--blue),var(--green));
+  color:#fff;font-size:27px;font-weight:900;
+  margin-bottom:18px;
+}
+.login-card h1{margin:0 0 8px;font-size:28px}
+.login-card p{margin:0 0 20px;line-height:1.5}
+.login-card .row{margin-top:12px}
+#appScreen{display:none}
+.top-user-bar{
+  max-width:1350px;
+  margin:0 auto;
+  padding:10px 20px 0;
+  display:flex;
+  justify-content:flex-end;
+  align-items:center;
+  gap:10px;
+}
+.top-user-bar span{font-size:13px;color:var(--muted)}
+.top-user-bar button{width:auto;padding:8px 14px}
+
+
+body{
+  background:
+    radial-gradient(circle at 12% 8%, rgba(56,189,248,.18), transparent 30%),
+    radial-gradient(circle at 88% 90%, rgba(139,92,246,.16), transparent 28%),
+    linear-gradient(135deg,#07111f 0%,#0b1423 48%,#10182a 100%);
+}
+header h1{
+  background:linear-gradient(90deg,#7dd3fc,#22d3a6,#a78bfa);
+  -webkit-background-clip:text;
+  background-clip:text;
+  color:transparent;
+  letter-spacing:-.5px;
+}
+.card{
+  background:rgba(15,27,45,.92);
+  border:1px solid rgba(125,211,252,.16);
+  box-shadow:0 18px 55px rgba(0,0,0,.28);
+  backdrop-filter:blur(10px);
+}
+input,select{
+  background:#0a1626;
+  color:var(--text);
+  border:1px solid #2a4059;
+}
+input::placeholder{color:#72849a}
+button{
+  background:linear-gradient(135deg,#0ea5e9,#2563eb);
+  box-shadow:0 8px 22px rgba(14,165,233,.18);
+  transition:transform .15s ease,filter .15s ease,box-shadow .15s ease;
+}
+button:hover{
+  transform:translateY(-1px);
+  filter:brightness(1.06);
+  box-shadow:0 12px 26px rgba(14,165,233,.24);
+}
+.green{
+  background:linear-gradient(135deg,#10b981,#14b8a6);
+}
+.secondary{
+  background:#15243a;
+  color:#bae6fd;
+  border:1px solid #2d4663;
+}
+.red{
+  background:#301724;
+  color:#fda4af;
+  border:1px solid #653044;
+}
+.note{
+  background:#101d30;
+  color:#a8bad0;
+  border:1px solid #263b55;
+}
+.auth-panel,.project-panel{
+  background:linear-gradient(180deg,rgba(18,34,56,.96),rgba(12,25,43,.96));
+  border:1px solid rgba(125,211,252,.16);
+}
+.login-card{
+  background:
+    linear-gradient(180deg,rgba(15,27,45,.98),rgba(9,20,35,.98));
+  border:1px solid rgba(125,211,252,.24);
+  box-shadow:0 28px 80px rgba(0,0,0,.46);
+}
+.login-logo{
+  width:62px;
+  height:62px;
+  background:linear-gradient(135deg,#38bdf8,#22d3a6 52%,#8b5cf6);
+  box-shadow:0 12px 32px rgba(56,189,248,.28);
+  font-size:18px;
+  letter-spacing:-1px;
+}
+.login-card h1{
+  font-size:34px;
+  background:linear-gradient(90deg,#7dd3fc,#22d3a6,#a78bfa);
+  -webkit-background-clip:text;
+  background-clip:text;
+  color:transparent;
+}
+#map{
+  border:1px solid rgba(125,211,252,.18);
+  box-shadow:0 18px 55px rgba(0,0,0,.3);
+}
+.stat{
+  background:linear-gradient(180deg,#132238,#0e1b2d);
+  border:1px solid #263b55;
+}
+.stat b{color:#7dd3fc}
+th{background:#132238;color:#bae6fd}
+td{color:#dbeafe}
+.item{border-bottom:1px solid #263b55}
+.top-user-bar span{color:#9fb0c7}
+.tabs .tab{
+  background:#14243b;
+  color:#b8c8dd;
+  border:1px solid #27405d;
+}
+.tabs .tab.active{
+  background:linear-gradient(135deg,#0ea5e9,#2563eb);
+  color:white;
+}
+
+
+.brand-lockup{
+  display:flex;
+  align-items:center;
+  gap:14px;
+}
+.brand-logo{
+  display:block;
+  object-fit:contain;
+}
+.login-brand-logo{
+  width:100%;
+  max-width:310px;
+  height:auto;
+  margin:0 auto 18px;
+  border-radius:16px;
+  background:white;
+  padding:10px;
+  box-shadow:0 16px 38px rgba(0,0,0,.22);
+}
+.header-brand-logo{
+  width:210px;
+  max-width:52vw;
+  height:auto;
+  border-radius:12px;
+  background:white;
+  padding:6px 10px;
+  box-shadow:0 10px 24px rgba(0,0,0,.18);
+}
+.header-brand-text{
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+}
+.header-brand-text h1{
+  margin:0;
+}
+@media(max-width:700px){
+  .brand-lockup{align-items:flex-start;flex-direction:column}
+  .header-brand-logo{width:180px;max-width:100%}
+}
+
+
+.auth-tabs{display:flex;gap:8px;margin-bottom:18px}
+.auth-tab{background:#14243b;color:#b8c8dd;border:1px solid #27405d}
+.auth-tab.active{background:linear-gradient(135deg,#0ea5e9,#2563eb);color:white}
+.signup-only{display:none}
+#dashboardScreen{display:none;min-height:100vh;padding:24px}
+.dashboard-shell{max-width:1100px;margin:auto}
+.dashboard-header{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:22px}
+.dashboard-header-actions{display:flex;gap:10px;align-items:center}
+.dashboard-header-actions button{width:auto}
+.dashboard-grid{display:grid;grid-template-columns:1fr;gap:18px}
+.dashboard-card{padding:20px}
+.dashboard-card h2,.dashboard-card h3{margin-top:0}
+.profile-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.project-cards{display:grid;gap:10px}
+.project-card{padding:14px;border:1px solid #263b55;border-radius:12px;background:#101d30}
+.project-card h4{margin:0 0 6px}
+.project-card-actions{display:flex;gap:8px;margin-top:10px}
+.project-card-actions button{width:auto;padding:8px 12px}
+.planner-top-actions{max-width:1350px;margin:0 auto;padding:10px 20px 0;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.planner-top-actions button{width:auto}
+.constraint-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:7px}
+.constraint-grid label{font-size:11px;margin:0 0 3px}
+.constraint-grid input,.constraint-grid select{padding:7px;font-size:12px}
+.priority-badge{display:inline-block;padding:3px 7px;border-radius:999px;background:#2d1b45;color:#c4b5fd;font-size:10px;font-weight:700;margin-top:5px}
+.violation{color:#fda4af;font-weight:700}
+.waiting{color:#7dd3fc}
+@media(max-width:850px){
+  .dashboard-grid{grid-template-columns:1fr}
+  .profile-grid{grid-template-columns:1fr}
+}
+
+
+.route-edit-row td{background:#0c1728}
+.inline-editor{
+  display:grid;
+  grid-template-columns:repeat(5,minmax(120px,1fr));
+  gap:8px;
+  align-items:end;
+}
+.inline-editor label{
+  font-size:10px;
+  color:#9fb0c7;
+  margin:0 0 4px;
+}
+.inline-editor select,.inline-editor input{
+  padding:7px 8px;
+  font-size:12px;
+}
+.edit-stop-btn{
+  width:auto;
+  padding:6px 10px;
+  margin-top:6px;
+  background:#14243b;
+  color:#bae6fd;
+  border:1px solid #2d4663;
+}
+.constraint-summary{
+  display:flex;
+  gap:6px;
+  flex-wrap:wrap;
+  margin-top:6px;
+}
+.constraint-chip{
+  display:inline-block;
+  padding:3px 7px;
+  border-radius:999px;
+  background:#17263d;
+  color:#b8c8dd;
+  font-size:10px;
+}
+.constraint-chip.important{
+  background:#2d1b45;
+  color:#c4b5fd;
+}
+@media(max-width:900px){
+  .inline-editor{grid-template-columns:1fr 1fr}
+}
+
+
+.address-book-panel{margin-top:0}
+.address-book-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.address-list{display:grid;gap:9px;margin-top:12px}
+.address-card{padding:12px;border:1px solid #263b55;border-radius:12px;background:#101d30}
+.address-card h4{margin:0 0 5px}
+.address-card small{display:block;color:#9fb0c7;line-height:1.4}
+.address-card-actions{display:flex;gap:7px;margin-top:9px;flex-wrap:wrap}
+.address-card-actions button{width:auto;padding:7px 10px}
+.email-modal{
+  position:fixed;inset:0;z-index:3000;
+  display:none;align-items:center;justify-content:center;
+  padding:20px;background:rgba(2,8,23,.78);
+}
+.email-modal-card{
+  width:min(760px,100%);max-height:88vh;overflow:auto;
+  background:#0f1b2d;border:1px solid #2a4059;border-radius:18px;
+  padding:20px;box-shadow:0 25px 80px rgba(0,0,0,.45);
+}
+.email-row{padding:12px;border:1px solid #263b55;border-radius:12px;margin-top:9px;background:#101d30}
+.email-row label{display:flex;align-items:center;gap:8px;margin:0}
+.email-row input[type="checkbox"]{width:auto}
+.email-row textarea{width:100%;min-height:92px;margin-top:8px;background:#0a1626;color:#edf4ff;border:1px solid #2a4059;border-radius:10px;padding:10px}
+.modal-actions{display:flex;gap:9px;margin-top:14px;justify-content:flex-end}
+.modal-actions button{width:auto}
+@media(max-width:700px){.address-book-grid{grid-template-columns:1fr}}
+
+
+.app-nav{
+  position:sticky;top:0;z-index:1200;display:flex;gap:8px;flex-wrap:wrap;
+  align-items:center;padding:12px 20px;background:rgba(7,17,31,.96);
+  border-bottom:1px solid #22354d;backdrop-filter:blur(14px);
+}
+.app-nav button{
+  width:auto;padding:10px 15px;border-radius:10px;background:#13233a;
+  color:#a9bad0;border:1px solid #29415e;
+}
+.app-nav button.active{
+  background:linear-gradient(135deg,#0ea5e9,#2563eb);
+  color:white;border-color:transparent;
+}
+.app-nav .nav-spacer{flex:1}
+.app-view{display:none}
+.app-view.active{display:block}
+.dashboard-single{max-width:1100px;margin:0 auto;padding:24px}
+.section-heading{margin-bottom:18px}
+.section-heading h1,.section-heading h2{margin-bottom:6px}
+@media(max-width:700px){
+  .app-nav{padding:10px}
+  .app-nav button{flex:1 1 45%}
+  .app-nav .nav-spacer{display:none}
+}
+
+
+:root{
+  --rr-bg:#07111f;
+  --rr-panel:#0d1a2d;
+  --rr-panel-2:#12233b;
+  --rr-border:#263d5b;
+  --rr-text:#eef6ff;
+  --rr-muted:#91a6bf;
+  --rr-blue:#22c7f2;
+  --rr-indigo:#4f46e5;
+  --rr-purple:#9333ea;
+  --rr-success:#10b981;
+}
+body{
+  background:
+    radial-gradient(circle at 12% 8%,rgba(34,199,242,.10),transparent 24%),
+    radial-gradient(circle at 88% 14%,rgba(147,51,234,.12),transparent 26%),
+    linear-gradient(180deg,#06101d 0%,#091527 100%);
+}
+.app-nav{
+  box-shadow:0 12px 40px rgba(0,0,0,.28);
+}
+.app-nav button{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  min-height:42px;
+  font-weight:700;
+  transition:transform .18s ease,background .18s ease,border-color .18s ease;
+}
+.app-nav button:hover{
+  transform:translateY(-1px);
+  border-color:#3d5d83;
+}
+.app-nav button.active{
+  background:linear-gradient(135deg,var(--rr-blue),var(--rr-indigo) 55%,var(--rr-purple));
+  box-shadow:0 10px 24px rgba(79,70,229,.28);
+}
+.dashboard-single{
+  max-width:1180px;
+  padding:34px 24px 56px;
+}
+.section-heading{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:18px;
+  padding:22px 24px;
+  margin-bottom:20px;
+  border:1px solid rgba(84,118,158,.28);
+  border-radius:20px;
+  background:
+    linear-gradient(135deg,rgba(17,35,59,.92),rgba(10,24,42,.92)),
+    radial-gradient(circle at top right,rgba(34,199,242,.16),transparent 38%);
+  box-shadow:0 18px 55px rgba(0,0,0,.24);
+}
+.section-heading h1{
+  margin:0;
+  font-size:clamp(28px,4vw,42px);
+  letter-spacing:-.03em;
+}
+.section-heading p{
+  margin:8px 0 0;
+  color:var(--rr-muted);
+  font-size:15px;
+}
+.section-kicker{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  padding:6px 10px;
+  margin-bottom:10px;
+  border-radius:999px;
+  color:#bdefff;
+  background:rgba(34,199,242,.10);
+  border:1px solid rgba(34,199,242,.24);
+  font-size:11px;
+  font-weight:800;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+}
+.dashboard-card{
+  border:1px solid rgba(74,104,142,.34);
+  border-radius:18px;
+  background:linear-gradient(145deg,rgba(15,30,51,.96),rgba(10,23,40,.96));
+  box-shadow:0 18px 55px rgba(0,0,0,.20);
+}
+.dashboard-card h2,.dashboard-card h3{
+  letter-spacing:-.02em;
+}
+.quick-actions{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:14px;
+  margin-top:18px;
+}
+.quick-card{
+  position:relative;
+  overflow:hidden;
+  padding:18px;
+  border-radius:16px;
+  border:1px solid rgba(78,108,146,.34);
+  background:linear-gradient(145deg,rgba(18,37,63,.95),rgba(11,25,43,.95));
+}
+.quick-card::after{
+  content:"";
+  position:absolute;
+  width:90px;height:90px;
+  right:-28px;top:-28px;
+  border-radius:50%;
+  background:linear-gradient(135deg,rgba(34,199,242,.18),rgba(147,51,234,.12));
+}
+.quick-card strong{
+  display:block;
+  margin-bottom:6px;
+  font-size:15px;
+}
+.quick-card span{
+  color:var(--rr-muted);
+  font-size:12px;
+  line-height:1.5;
+}
+.feature-icon{
+  width:42px;height:42px;
+  display:grid;place-items:center;
+  margin-bottom:12px;
+  border-radius:13px;
+  font-size:20px;
+  background:linear-gradient(135deg,rgba(34,199,242,.22),rgba(79,70,229,.28));
+  border:1px solid rgba(72,183,236,.30);
+}
+.project-card,.address-card{
+  transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease;
+}
+.project-card:hover,.address-card:hover{
+  transform:translateY(-2px);
+  border-color:#42668e;
+  box-shadow:0 14px 30px rgba(0,0,0,.18);
+}
+.hero-start-button{
+  min-height:52px;
+  font-size:15px;
+  box-shadow:0 14px 32px rgba(16,185,129,.20);
+}
+.reset-shell{
+  width:min(520px,100%);
+  position:relative;
+}
+.reset-shell::before{
+  content:"";
+  position:absolute;
+  inset:-1px;
+  border-radius:22px;
+  padding:1px;
+  background:linear-gradient(135deg,var(--rr-blue),var(--rr-purple));
+  -webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);
+  -webkit-mask-composite:xor;
+  mask-composite:exclude;
+  pointer-events:none;
+}
+@media(max-width:820px){
+  .quick-actions{grid-template-columns:1fr}
+  .section-heading{align-items:flex-start;flex-direction:column}
+}
+
+
+.saved-address-home{
+  margin-top:18px;
+  border:1px solid rgba(64,93,128,.45);
+  border-radius:18px;
+  background:linear-gradient(145deg,rgba(14,29,49,.98),rgba(9,21,37,.98));
+  overflow:hidden;
+}
+.saved-address-home summary{
+  cursor:pointer;
+  list-style:none;
+  padding:16px 18px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+  font-weight:800;
+  color:#e8f3ff;
+}
+.saved-address-home summary::-webkit-details-marker{display:none}
+.saved-address-home summary::after{
+  content:"▾";
+  color:#7dd3fc;
+  font-size:16px;
+}
+.saved-address-home[open] summary::after{content:"▴"}
+.saved-address-home-body{
+  padding:0 16px 16px;
+  border-top:1px solid rgba(56,83,115,.45);
+}
+.saved-address-home-note{
+  margin:12px 0;
+  color:#91a6bf;
+  font-size:13px;
+}
+.saved-address-home-list{
+  display:grid;
+  gap:10px;
+}
+.saved-address-home-card{
+  display:grid;
+  grid-template-columns:1fr auto;
+  gap:14px;
+  align-items:center;
+  padding:13px;
+  border-radius:14px;
+  border:1px solid #263d5b;
+  background:#0a1728;
+}
+.saved-address-home-card h4{margin:0 0 5px}
+.saved-address-home-card small{
+  display:block;
+  color:#91a6bf;
+  line-height:1.45;
+}
+.saved-address-home-actions{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+}
+.saved-address-home-actions button{
+  width:auto;
+  padding:8px 11px;
+  font-size:12px;
+}
+@media(max-width:760px){
+  .saved-address-home-card{grid-template-columns:1fr}
+  .saved-address-home-actions{justify-content:flex-start}
+}
+
+
+.preferences-grid{display:grid;gap:16px}
+.pref-card{border:1px solid #29415e;border-radius:16px;background:#0d1a2d;padding:18px}
+.pref-card h3{margin:0 0 14px}
+.pref-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.pref-grid.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+.pref-days{display:grid;gap:8px}
+.pref-day{display:grid;grid-template-columns:160px 1fr 1fr;gap:10px;align-items:end;padding:10px;border:1px solid #263d5b;border-radius:12px;background:#0a1728}
+.pref-day-name{display:flex;gap:8px;align-items:center;font-weight:700}
+.pref-day-name input{width:auto}
+.pref-toggle{display:flex;justify-content:space-between;gap:15px;align-items:center;padding:10px 0;border-bottom:1px solid #263d5b}
+.pref-toggle:last-child{border-bottom:0}
+.pref-toggle input{width:auto}
+.pref-actions{display:flex;justify-content:flex-end;gap:10px;align-items:center;position:sticky;bottom:10px;padding:12px;border:1px solid #29415e;border-radius:14px;background:rgba(8,20,35,.95)}
+.pref-actions button{width:auto}
+#profileMessage{margin-right:auto;color:#9fb0c7}
+@media(max-width:760px){.pref-grid,.pref-grid.three{grid-template-columns:1fr}.pref-day{grid-template-columns:1fr}}
+
+
+.visual-hero{
+  position:relative;
+  overflow:hidden;
+  min-height:260px;
+  border-radius:22px;
+  border:1px solid rgba(77,109,148,.38);
+  margin-bottom:20px;
+  background:#0b1728;
+  box-shadow:0 24px 70px rgba(0,0,0,.28);
+}
+.visual-hero img{
+  width:100%;
+  height:100%;
+  min-height:260px;
+  object-fit:cover;
+  object-position:center top;
+  display:block;
+  opacity:.88;
+}
+.visual-hero::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:
+    linear-gradient(90deg,rgba(5,15,28,.86) 0%,rgba(5,15,28,.28) 44%,rgba(5,15,28,.08) 100%),
+    linear-gradient(180deg,transparent 55%,rgba(5,15,28,.72) 100%);
+}
+.visual-hero-copy{
+  position:absolute;
+  z-index:2;
+  left:28px;
+  top:28px;
+  max-width:460px;
+}
+.visual-hero-copy .eyebrow{
+  display:inline-flex;
+  padding:6px 10px;
+  border-radius:999px;
+  background:rgba(34,199,242,.12);
+  border:1px solid rgba(34,199,242,.28);
+  color:#b9f2ff;
+  font-size:11px;
+  font-weight:800;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+.visual-hero-copy h2{
+  margin:12px 0 8px;
+  font-size:clamp(30px,4vw,48px);
+  line-height:1.02;
+  letter-spacing:-.04em;
+}
+.visual-hero-copy p{
+  margin:0;
+  color:#c5d4e7;
+  font-size:15px;
+  line-height:1.6;
+}
+.visual-strip{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:14px;
+  margin:18px 0 22px;
+}
+.visual-strip-card{
+  min-height:150px;
+  padding:18px;
+  border-radius:18px;
+  border:1px solid rgba(71,102,139,.36);
+  background:
+    radial-gradient(circle at top right,rgba(34,199,242,.14),transparent 34%),
+    linear-gradient(145deg,#0f1e33,#0a1728);
+}
+.visual-strip-card .icon{
+  width:44px;height:44px;display:grid;place-items:center;
+  border-radius:14px;margin-bottom:12px;
+  background:linear-gradient(135deg,rgba(34,199,242,.22),rgba(147,51,234,.22));
+  font-size:21px;
+}
+.visual-strip-card h3{margin:0 0 7px}
+.visual-strip-card p{margin:0;color:#91a6bf;font-size:13px;line-height:1.55}
+.preference-visual-banner{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:18px;
+  padding:18px 20px;
+  margin-bottom:18px;
+  border-radius:16px;
+  border:1px solid rgba(74,104,142,.34);
+  background:
+    linear-gradient(135deg,rgba(17,35,59,.95),rgba(10,24,42,.95)),
+    radial-gradient(circle at right,rgba(147,51,234,.16),transparent 34%);
+}
+.preference-visual-banner strong{display:block;margin-bottom:5px}
+.preference-visual-banner span{color:#91a6bf;font-size:13px}
+.preference-visual-banner .route-line{
+  font-size:32px;
+  white-space:nowrap;
+}
+@media(max-width:820px){
+  .visual-strip{grid-template-columns:1fr}
+  .visual-hero{min-height:320px}
+  .visual-hero img{min-height:320px}
+  .visual-hero-copy{left:20px;right:20px;top:22px}
+  .preference-visual-banner{align-items:flex-start;flex-direction:column}
+}
+
+
+/* RouteRoush app-shell redesign */
+#dashboardScreen{min-height:100vh;background:#07111f;padding:0!important}
+.rr-shell{min-height:100vh;display:grid;grid-template-columns:250px minmax(0,1fr)}
+.rr-sidebar{
+  position:sticky;top:0;height:100vh;overflow:auto;padding:22px 18px;
+  border-right:1px solid #1f3550;
+  background:radial-gradient(circle at 20% 0%,rgba(55,126,255,.12),transparent 28%),linear-gradient(180deg,#071425,#06101d)
+}
+.rr-sidebar-logo{width:190px;max-width:100%;display:block;margin:0 auto 24px;padding:7px;border-radius:14px;background:white}
+.rr-user-card{display:flex;align-items:center;gap:12px;padding:14px;margin-bottom:20px;border:1px solid #213b5b;border-radius:16px;background:rgba(16,34,57,.82)}
+.rr-avatar{width:46px;height:46px;display:grid;place-items:center;border-radius:50%;font-weight:900;color:white;background:linear-gradient(135deg,#22c7f2,#4f46e5,#9333ea)}
+.rr-user-card strong{display:block}.rr-user-card small{display:block;color:#8fa4bd;margin-top:3px;word-break:break-word}
+.rr-side-nav{display:grid;gap:8px}
+.rr-side-nav button{width:100%;min-height:46px;display:flex;align-items:center;justify-content:flex-start;gap:11px;padding:11px 13px;border-radius:12px;color:#a8b9ce;background:transparent;border:1px solid transparent;font-weight:750}
+.rr-side-nav button:hover{background:#10233b;color:white}
+.rr-side-nav button.active{color:white;border-color:rgba(110,86,255,.36);background:linear-gradient(135deg,#1f6df2,#6e3ce7);box-shadow:0 12px 28px rgba(59,72,246,.25)}
+.rr-sidebar-bottom{margin-top:22px;padding-top:18px;border-top:1px solid #1d314a}.rr-sidebar-bottom button{width:100%}
+.rr-main{min-width:0}
+.rr-topbar{position:sticky;top:0;z-index:1100;min-height:70px;display:flex;align-items:center;justify-content:space-between;gap:20px;padding:12px 26px;border-bottom:1px solid #203650;background:rgba(7,17,31,.94);backdrop-filter:blur(15px)}
+.rr-topbar-title strong{display:block;font-size:15px}.rr-topbar-title small{display:block;color:#8da2bb;margin-top:3px}
+.rr-content{min-height:calc(100vh - 70px);padding:0 24px 48px}
+.app-view{min-height:calc(100vh - 70px);padding-top:24px}
+.rr-tab-hero{position:relative;overflow:hidden;min-height:220px;display:flex;align-items:flex-end;padding:30px;margin-bottom:22px;border:1px solid rgba(89,119,155,.34);border-radius:22px;background-size:cover;background-position:center;box-shadow:0 22px 65px rgba(0,0,0,.28)}
+.rr-tab-hero::before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(3,12,23,.94),rgba(3,12,23,.44) 52%,rgba(3,12,23,.12)),linear-gradient(180deg,rgba(3,12,23,.05),rgba(3,12,23,.62))}
+.rr-tab-hero>div{position:relative;z-index:2;max-width:570px}
+.rr-tab-hero .kicker{display:inline-flex;padding:6px 10px;border-radius:999px;margin-bottom:10px;color:#c5f4ff;background:rgba(34,199,242,.12);border:1px solid rgba(34,199,242,.27);font-size:11px;font-weight:850;letter-spacing:.08em;text-transform:uppercase}
+.rr-tab-hero h1{margin:0;font-size:clamp(30px,4vw,48px);line-height:1.03;letter-spacing:-.04em}.rr-tab-hero p{margin:10px 0 0;color:#c0d0e3;line-height:1.6}
+#newProjectView .rr-tab-hero{background-image:url('routeroush-hero.png');background-position:center 28%}
+#savedProjectsView .rr-tab-hero{background-image:linear-gradient(135deg,rgba(26,87,170,.26),rgba(85,39,170,.25)),url('routeroush-hero.png');background-position:center 50%}
+#preferredAddressesView .rr-tab-hero{background-image:linear-gradient(135deg,rgba(0,144,134,.20),rgba(48,88,180,.24)),url('routeroush-hero.png');background-position:center 66%}
+#profileView .rr-tab-hero{background-image:linear-gradient(135deg,rgba(76,41,166,.22),rgba(20,127,178,.20)),url('routeroush-hero.png');background-position:center 78%}
+.dashboard-single{max-width:1280px;margin:0 auto;padding:0}.section-heading{display:none!important}.visual-hero{display:none!important}
+.rr-launch-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:18px}
+.rr-launch-card{min-height:165px;padding:18px;border-radius:17px;border:1px solid #d8e4f1;color:#17243a;background:linear-gradient(145deg,#fff,#f2f7fc);box-shadow:0 12px 30px rgba(2,8,23,.12)}
+.rr-launch-card .icon{width:46px;height:46px;display:grid;place-items:center;margin-bottom:13px;border-radius:14px;font-size:23px;background:linear-gradient(135deg,#e9e4ff,#e4f5ff)}
+.rr-launch-card h3{margin:0 0 8px}.rr-launch-card p{margin:0;color:#637189;font-size:13px;line-height:1.55}
+.rr-light-workspace{padding:20px;border-radius:22px;color:#16243a;background:#f6f9fd;border:1px solid #d8e3ef;box-shadow:0 22px 60px rgba(0,0,0,.20)}
+.rr-light-workspace label{color:#34445c}.rr-light-workspace input,.rr-light-workspace select,.rr-light-workspace textarea{background:white;color:#152239;border-color:#c9d7e7}.rr-light-workspace .note{background:#edf4fb;color:#42536b}
+@media(max-width:980px){.rr-shell{grid-template-columns:88px minmax(0,1fr)}.rr-sidebar{padding:18px 10px}.rr-sidebar-logo{width:62px;height:62px;object-fit:cover;object-position:left}.rr-user-card{padding:8px;justify-content:center}.rr-user-card>div:last-child{display:none}.rr-side-nav button span.label{display:none}.rr-side-nav button{justify-content:center}.rr-sidebar-bottom .label{display:none}.rr-launch-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:680px){.rr-shell{display:block}.rr-sidebar{position:static;height:auto;display:flex;gap:10px;padding:10px;overflow:auto;border-right:0;border-bottom:1px solid #203650}.rr-sidebar-logo,.rr-user-card,.rr-sidebar-bottom{display:none}.rr-side-nav{display:flex;min-width:max-content}.rr-side-nav button{width:auto}.rr-side-nav button span.label{display:inline}.rr-topbar{padding:10px 14px}.rr-content{padding:0 12px 32px}.rr-launch-grid{grid-template-columns:1fr}.rr-tab-hero{min-height:250px;padding:22px}}
+
+
+/* Premium RouteRoush dashboard refresh */
+:root{
+  --rr-navy:#06101d;
+  --rr-panel:#0b1728;
+  --rr-panel-2:#101f35;
+  --rr-border:#233a57;
+  --rr-muted:#91a6bf;
+  --rr-cyan:#26d3ff;
+  --rr-blue:#2d7df4;
+  --rr-purple:#7c3aed;
+  --rr-pink:#ec4899;
+  --rr-green:#10b981;
+}
+body{
+  background:
+    radial-gradient(circle at 84% 8%,rgba(124,58,237,.12),transparent 28%),
+    radial-gradient(circle at 12% 12%,rgba(38,211,255,.08),transparent 28%),
+    linear-gradient(180deg,#05101d,#071425);
+}
+.rr-shell{grid-template-columns:250px minmax(0,1fr)}
+.rr-sidebar{
+  background:
+    radial-gradient(circle at 12% 0%,rgba(55,126,255,.13),transparent 30%),
+    linear-gradient(180deg,#061426,#050d18);
+  box-shadow:20px 0 55px rgba(0,0,0,.16);
+}
+.rr-sidebar-logo{
+  width:205px;
+  background:white;
+  box-shadow:0 14px 35px rgba(0,0,0,.24);
+}
+.rr-side-nav button{
+  font-size:14px;
+  transition:transform .16s ease,background .16s ease,border-color .16s ease;
+}
+.rr-side-nav button:hover{transform:translateX(2px)}
+.rr-side-nav button.active{
+  background:linear-gradient(135deg,#267df5,#6e3ce7 65%,#9333ea);
+}
+.rr-topbar{
+  min-height:64px;
+  padding:10px 26px;
+  background:rgba(5,14,25,.94);
+}
+.rr-content{
+  padding:0 22px 48px;
+  background:
+    linear-gradient(rgba(5,15,27,.90),rgba(5,15,27,.90)),
+    radial-gradient(circle at 82% 4%,rgba(94,46,196,.12),transparent 26%);
+}
+.app-view{padding-top:20px}
+.dashboard-single{max-width:1360px}
+.rr-tab-hero{
+  min-height:250px;
+  padding:34px;
+  border-radius:24px;
+  background-image:url('routeroush-dashboard-bg.png') !important;
+  background-size:cover;
+  background-position:center 30%;
+  border-color:rgba(81,113,154,.40);
+  box-shadow:0 28px 80px rgba(0,0,0,.34);
+}
+#savedProjectsView .rr-tab-hero{background-position:center 42%}
+#preferredAddressesView .rr-tab-hero{background-position:center 58%}
+#profileView .rr-tab-hero{background-position:center 72%}
+.rr-tab-hero::before{
+  background:
+    linear-gradient(90deg,rgba(2,10,20,.96) 0%,rgba(2,10,20,.72) 38%,rgba(2,10,20,.18) 74%,rgba(2,10,20,.10) 100%),
+    linear-gradient(180deg,rgba(3,11,21,.08),rgba(3,11,21,.58));
+}
+.rr-tab-hero .kicker{
+  color:#c7f7ff;
+  background:rgba(38,211,255,.10);
+  border-color:rgba(38,211,255,.34);
+}
+.rr-tab-hero h1{
+  max-width:620px;
+  font-size:clamp(36px,5vw,58px);
+  text-shadow:0 3px 22px rgba(0,0,0,.45);
+}
+.rr-tab-hero p{font-size:16px;max-width:620px}
+.rr-launch-grid{
+  grid-template-columns:repeat(5,minmax(0,1fr));
+  gap:14px;
+}
+.rr-launch-card{
+  position:relative;
+  overflow:hidden;
+  min-height:182px;
+  color:#edf6ff;
+  border:1px solid rgba(71,101,137,.46);
+  background:
+    radial-gradient(circle at top right,rgba(124,58,237,.16),transparent 34%),
+    linear-gradient(145deg,#101f35,#091523);
+  box-shadow:0 18px 40px rgba(0,0,0,.20);
+  transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease;
+}
+.rr-launch-card:hover{
+  transform:translateY(-3px);
+  border-color:#4e77a7;
+  box-shadow:0 22px 50px rgba(0,0,0,.28);
+}
+.rr-launch-card .icon{
+  background:linear-gradient(135deg,rgba(38,211,255,.20),rgba(124,58,237,.24));
+  border:1px solid rgba(90,175,237,.22);
+}
+.rr-launch-card p{color:#9db0c8}
+.rr-launch-card::after{
+  content:"→";
+  position:absolute;
+  right:16px;
+  bottom:12px;
+  color:#7dd3fc;
+  font-size:18px;
+}
+.rr-light-workspace{
+  color:#edf6ff;
+  background:
+    radial-gradient(circle at top right,rgba(45,125,244,.10),transparent 30%),
+    linear-gradient(145deg,#0e1d31,#091625);
+  border-color:#28415f;
+}
+.rr-light-workspace label{color:#b9c9dc}
+.rr-light-workspace input,
+.rr-light-workspace select,
+.rr-light-workspace textarea{
+  color:#edf6ff;
+  background:#071524;
+  border-color:#2d4868;
+}
+.rr-light-workspace .note{
+  color:#a9bad0;
+  background:#10243b;
+}
+.dashboard-card,.pref-card,.address-card,.project-card{
+  border-color:#28415f;
+  background:
+    radial-gradient(circle at top right,rgba(58,113,199,.09),transparent 30%),
+    linear-gradient(145deg,#0e1d31,#091625);
+}
+.visual-strip-card{
+  min-height:165px;
+  background:
+    radial-gradient(circle at top right,rgba(124,58,237,.14),transparent 32%),
+    linear-gradient(145deg,#0f1f34,#0a1728);
+}
+.preference-visual-banner{
+  background:
+    linear-gradient(135deg,rgba(15,32,54,.98),rgba(8,21,37,.98)),
+    radial-gradient(circle at right,rgba(38,211,255,.14),transparent 34%);
+}
+.rr-quick-settings{
+  display:grid;
+  grid-template-columns:1.1fr .9fr;
+  gap:18px;
+  margin-top:18px;
+}
+.rr-settings-panel,.rr-promo-panel{
+  border:1px solid #28415f;
+  border-radius:20px;
+  background:
+    radial-gradient(circle at top right,rgba(38,211,255,.09),transparent 30%),
+    linear-gradient(145deg,#0d1c30,#091625);
+  overflow:hidden;
+}
+.rr-settings-panel{padding:18px}
+.rr-settings-panel h3{margin:0 0 14px}
+.rr-settings-grid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:10px;
+}
+.rr-setting-tile{
+  padding:12px;
+  border-radius:13px;
+  border:1px solid #243b58;
+  background:#0a1728;
+}
+.rr-setting-tile strong{display:block;font-size:12px}
+.rr-setting-tile span{display:block;margin-top:5px;color:#91a6bf;font-size:12px}
+.rr-promo-panel{
+  min-height:250px;
+  position:relative;
+  background-image:
+    linear-gradient(90deg,rgba(3,11,21,.92),rgba(3,11,21,.24)),
+    url('routeroush-dashboard-bg.png');
+  background-size:cover;
+  background-position:center 74%;
+}
+.rr-promo-copy{
+  position:absolute;
+  z-index:2;
+  left:22px;bottom:22px;
+  max-width:320px;
+}
+.rr-promo-copy h3{font-size:28px;margin:0 0 8px}
+.rr-promo-copy p{margin:0;color:#c2d0df;line-height:1.55}
+@media(max-width:1180px){
+  .rr-launch-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media(max-width:900px){
+  .rr-quick-settings{grid-template-columns:1fr}
+  .rr-settings-grid{grid-template-columns:1fr 1fr}
+}
+@media(max-width:700px){
+  .rr-launch-grid{grid-template-columns:1fr}
+  .rr-settings-grid{grid-template-columns:1fr}
+  .rr-tab-hero{min-height:290px;padding:24px}
+}
+
+
+/* Professional RouteRoush login */
+#loginScreen{
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:28px;
+  background:
+    radial-gradient(circle at 82% 12%,rgba(38,211,255,.10),transparent 28%),
+    radial-gradient(circle at 12% 10%,rgba(124,58,237,.13),transparent 30%),
+    linear-gradient(180deg,#04101d,#071827);
+}
+.rr-login-shell{
+  width:min(1420px,100%);
+  min-height:790px;
+  display:grid;
+  grid-template-columns:1.05fr .95fr;
+  overflow:hidden;
+  border:1px solid #213c5c;
+  border-radius:28px;
+  background:#071525;
+  box-shadow:0 34px 110px rgba(0,0,0,.46);
+}
+.rr-login-marketing{
+  position:relative;
+  overflow:hidden;
+  padding:48px;
+  background:
+    linear-gradient(180deg,rgba(3,11,21,.15),rgba(3,11,21,.72)),
+    linear-gradient(90deg,rgba(3,11,21,.92),rgba(3,11,21,.20)),
+    url('routeroush-dashboard-bg.png');
+  background-size:cover;
+  background-position:center;
+}
+.rr-login-marketing::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:
+    radial-gradient(circle at 82% 30%,rgba(38,211,255,.15),transparent 26%),
+    radial-gradient(circle at 28% 82%,rgba(124,58,237,.18),transparent 30%);
+  pointer-events:none;
+}
+.rr-login-brand{
+  position:relative;
+  z-index:2;
+  width:210px;
+  max-width:100%;
+  padding:7px;
+  border-radius:14px;
+  background:white;
+  box-shadow:0 14px 35px rgba(0,0,0,.25);
+}
+.rr-login-copy{
+  position:relative;
+  z-index:2;
+  max-width:650px;
+  margin-top:52px;
+}
+.rr-login-copy h1{
+  margin:0;
+  font-size:clamp(42px,5vw,72px);
+  line-height:.98;
+  letter-spacing:-.055em;
+}
+.rr-login-copy h1 span{
+  background:linear-gradient(90deg,#27d4d4,#3295ff,#9b4dff);
+  -webkit-background-clip:text;
+  background-clip:text;
+  color:transparent;
+}
+.rr-login-copy>p{
+  max-width:520px;
+  margin:22px 0 0;
+  color:#c4d3e5;
+  font-size:18px;
+  line-height:1.65;
+}
+.rr-login-features{
+  position:relative;
+  z-index:2;
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:16px;
+  margin-top:38px;
+}
+.rr-login-feature{
+  display:grid;
+  grid-template-columns:52px 1fr;
+  gap:13px;
+  align-items:start;
+  padding:15px;
+  border:1px solid rgba(74,110,151,.34);
+  border-radius:15px;
+  background:rgba(7,21,38,.70);
+  backdrop-filter:blur(10px);
+}
+.rr-login-feature .icon{
+  width:52px;height:52px;
+  display:grid;place-items:center;
+  border-radius:14px;
+  font-size:24px;
+  background:linear-gradient(135deg,rgba(38,211,255,.17),rgba(124,58,237,.23));
+}
+.rr-login-feature strong{display:block;margin-bottom:5px}
+.rr-login-feature small{color:#9db0c8;line-height:1.45}
+.rr-login-form-side{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:48px;
+  background:
+    radial-gradient(circle at 100% 100%,rgba(38,211,255,.09),transparent 30%),
+    linear-gradient(145deg,#0a1a2e,#071321);
+}
+.rr-login-panel{
+  width:min(590px,100%);
+  padding:36px;
+  border:1px solid #314b6b;
+  border-radius:24px;
+  background:linear-gradient(145deg,rgba(16,32,55,.95),rgba(8,21,37,.97));
+  box-shadow:0 28px 80px rgba(0,0,0,.30);
+}
+.rr-login-icon{
+  width:88px;
+  display:block;
+  margin:0 auto 20px;
+}
+.rr-login-panel h2{
+  margin:0;
+  text-align:center;
+  font-size:32px;
+}
+.rr-login-subtitle{
+  margin:8px 0 25px;
+  text-align:center;
+  color:#9fb0c7;
+}
+.rr-google-btn{
+  width:100%;
+  min-height:54px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:12px;
+  margin-bottom:18px;
+  border-radius:12px;
+  color:#162238;
+  background:white;
+  border:1px solid #d9e2ee;
+  font-weight:800;
+  font-size:15px;
+}
+.rr-google-btn:hover{background:#f3f7fb}
+.rr-google-logo{
+  width:22px;height:22px;
+}
+.rr-auth-divider{
+  display:flex;
+  align-items:center;
+  gap:13px;
+  margin:18px 0;
+  color:#7f93aa;
+  font-size:12px;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+}
+.rr-auth-divider::before,.rr-auth-divider::after{
+  content:"";
+  flex:1;
+  height:1px;
+  background:#29415e;
+}
+.rr-login-panel .auth-tabs{
+  margin-bottom:18px;
+}
+.rr-login-panel input{
+  min-height:48px;
+  color:#eef6ff;
+  background:#071525;
+  border-color:#2f4b6d;
+}
+.rr-login-panel input:focus{
+  border-color:#2dbce8;
+  box-shadow:0 0 0 3px rgba(45,188,232,.10);
+}
+.rr-login-panel label{color:#c3d1e1}
+.rr-login-security{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  margin-top:20px;
+  color:#8197b1;
+  font-size:12px;
+}
+.rr-login-build{
+  margin-top:14px;
+  text-align:center;
+  color:#4f657d;
+  font-size:10px;
+}
+@media(max-width:960px){
+  #loginScreen{padding:0}
+  .rr-login-shell{
+    min-height:100vh;
+    grid-template-columns:1fr;
+    border:0;
+    border-radius:0;
+  }
+  .rr-login-marketing{
+    min-height:450px;
+    padding:30px;
+  }
+  .rr-login-copy{margin-top:34px}
+  .rr-login-features{grid-template-columns:1fr 1fr}
+  .rr-login-form-side{padding:30px}
+}
+@media(max-width:620px){
+  .rr-login-marketing{min-height:380px;padding:22px}
+  .rr-login-copy h1{font-size:42px}
+  .rr-login-copy>p{font-size:15px}
+  .rr-login-features{display:none}
+  .rr-login-form-side{padding:18px}
+  .rr-login-panel{padding:24px 18px}
+}
+
+</style>
+</head>
+<body>
+
+<section id="loginScreen">
+  <div class="rr-login-shell">
+    <div class="rr-login-marketing">
+      <img class="rr-login-brand" src="routeroush-logo.png" alt="RouteRoush logo">
+      <div class="rr-login-copy">
+        <h1>Smarter routes.<br><span>Stronger business.</span></h1>
+        <p>Plan multi-day routes, manage recurring customers, and keep your weekly field schedule organized from one place.</p>
+
+        <div class="rr-login-features">
+          <div class="rr-login-feature">
+            <div class="icon">📍</div>
+            <div><strong>Optimize Routes</strong><small>Reduce unnecessary driving and organize every stop.</small></div>
+          </div>
+          <div class="rr-login-feature">
+            <div class="icon">📅</div>
+            <div><strong>Weekly Planning</strong><small>Build practical multi-day schedules around your workweek.</small></div>
+          </div>
+          <div class="rr-login-feature">
+            <div class="icon">👥</div>
+            <div><strong>Customer Management</strong><small>Save addresses and contact details for recurring visits.</small></div>
+          </div>
+          <div class="rr-login-feature">
+            <div class="icon">✉️</div>
+            <div><strong>Smart Notifications</strong><small>Prepare estimated-arrival updates for customers.</small></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="rr-login-form-side">
+      <div class="rr-login-panel">
+        <img class="rr-login-icon" src="routeroush-logo.png" alt="">
+        <h2>Welcome back</h2>
+        <p class="rr-login-subtitle">Log in to your RouteRoush account</p>
+
+        <button id="googleLoginBtn" class="rr-google-btn">
+          <svg class="rr-google-logo" viewBox="0 0 24 24" aria-hidden="true">
+            <path fill="#4285F4" d="M21.6 12.23c0-.75-.07-1.47-.19-2.16H12v4.09h5.38a4.6 4.6 0 0 1-1.99 3.02v2.51h3.23c1.89-1.74 2.98-4.3 2.98-7.46z"/>
+            <path fill="#34A853" d="M12 22c2.7 0 4.96-.9 6.62-2.43l-3.23-2.51c-.9.6-2.04.95-3.39.95-2.61 0-4.82-1.76-5.61-4.13H3.06v2.59A10 10 0 0 0 12 22z"/>
+            <path fill="#FBBC05" d="M6.39 13.88A6.01 6.01 0 0 1 6.08 12c0-.65.11-1.28.31-1.88V7.53H3.06A10 10 0 0 0 2 12c0 1.61.38 3.13 1.06 4.47l3.33-2.59z"/>
+            <path fill="#EA4335" d="M12 5.99c1.47 0 2.79.51 3.83 1.5l2.87-2.87C16.95 2.99 14.7 2 12 2a10 10 0 0 0-8.94 5.53l3.33 2.59C7.18 7.75 9.39 5.99 12 5.99z"/>
+          </svg>
+          Continue with Google
+        </button>
+
+        <div class="rr-auth-divider">or continue with email</div>
+
+        <div class="auth-tabs">
+          <button id="showLoginTab" class="auth-tab active">Log in</button>
+          <button id="showSignupTab" class="auth-tab">Create account</button>
+        </div>
+
+        <div id="loginForm">
+          <label>Email address</label>
+          <input id="loginEmail" type="email" autocomplete="email" placeholder="you@example.com">
+          <label>Password</label>
+          <input id="loginPassword" type="password" autocomplete="current-password" placeholder="Your password">
+          <button id="loginOnlyBtn" class="green" style="margin-top:14px">Log in</button>
+          <button id="forgotPasswordBtn" class="secondary" style="margin-top:9px">Forgot password?</button>
+        </div>
+
+        <div id="signupForm" class="signup-only">
+          <div class="row">
+            <div>
+              <label>First name</label>
+              <input id="firstName" type="text" autocomplete="given-name" placeholder="First name">
+            </div>
+            <div>
+              <label>Last name</label>
+              <input id="lastName" type="text" autocomplete="family-name" placeholder="Last name">
+            </div>
+          </div>
+          <label>Business name</label>
+          <input id="businessName" type="text" autocomplete="organization" placeholder="Company or business">
+          <label>Email</label>
+          <input id="signupEmail" type="email" autocomplete="email" placeholder="you@example.com">
+          <label>Password</label>
+          <input id="signupPassword" type="password" autocomplete="new-password" placeholder="At least 8 characters">
+          <button id="signupOnlyBtn" style="margin-top:14px">Create account</button>
+          <button id="resendConfirmationBtn" class="secondary" style="margin-top:9px">Resend confirmation email</button>
+        </div>
+
+        <div id="loginMessage" class="note" style="display:none"></div>
+        <div class="rr-login-security">🛡 Your authentication is securely handled by Supabase</div>
+        <div class="rr-login-build">Build: google-login-1</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+
+
+
+<section id="dashboardScreen" style="display:none">
+  <div class="rr-shell">
+    <aside class="rr-sidebar">
+      <img class="rr-sidebar-logo" src="routeroush-logo.png" alt="RouteRoush">
+      <div class="rr-user-card">
+        <div class="rr-avatar">RR</div>
+        <div><strong id="rrSidebarName">RouteRoush User</strong><small id="rrSidebarEmail"></small></div>
+      </div>
+      <nav class="rr-side-nav">
+        <button id="navNewProject" class="active">✨ <span class="label">New Project</span></button>
+        <button id="navSavedProjects">📁 <span class="label">Saved Projects</span></button>
+        <button id="navPreferredAddresses">📍 <span class="label">Preferred Addresses</span></button>
+        <button id="navProfile">👤 <span class="label">Profile</span></button>
+      </nav>
+      <div class="rr-sidebar-bottom">
+        <button id="dashboardLogoutBtn" class="secondary">↪ <span class="label">Log out</span></button>
+      </div>
+    </aside>
+    <main class="rr-main">
+      <header class="rr-topbar">
+        <div class="rr-topbar-title"><strong id="navUserLabel">RouteRoush</strong><small>Plan smarter. Drive less.</small></div>
+        <div class="rr-topbar-actions"><span id="dashboardWelcome" style="display:none"></span></div>
+      </header>
+      <div class="rr-content">
+        <section id="newProjectView" class="app-view active">
+    <div class="dashboard-single">
+      <div class="rr-tab-hero">
+        <div>
+          <div class="kicker">Route workspace</div>
+          <h1>Create a New Project</h1>
+          <p>Build, schedule, and optimize a multi-day route from one focused workspace.</p>
+        </div>
+      </div>
+      <div class="visual-hero">
+        <img src="routeroush-hero.png" alt="RouteRoush route planning dashboard illustration">
+        <div class="visual-hero-copy">
+          <div class="eyebrow">Plan smarter</div>
+          <h2>Your week, mapped beautifully.</h2>
+          <p>Create efficient routes, organize customers, and keep every workday under control.</p>
+        </div>
+      </div>
+      <div class="section-heading">
+        <div>
+          <div class="section-kicker">Route workspace</div>
+          <h1>Create a New Project</h1>
+          <p>Build, schedule, and optimize a multi-day route from one focused workspace.</p>
+        </div>
+      </div>
+      <div class="rr-launch-grid">
+        <div class="rr-launch-card"><div class="icon">➕</div><h3>Start from Scratch</h3><p>Create a new project from an empty workspace.</p></div>
+        <div class="rr-launch-card"><div class="icon">📁</div><h3>Use Template</h3><p>Start from a reusable route structure.</p></div>
+        <div class="rr-launch-card"><div class="icon">📄</div><h3>Import CSV</h3><p>Upload customers and stops in one step.</p></div>
+        <div class="rr-launch-card"><div class="icon">📍</div><h3>Use Saved Addresses</h3><p>Select saved customers and recurring locations.</p></div>
+        <div class="rr-launch-card"><div class="icon">⚡</div><h3>Quick Project</h3><p>Apply your saved business preferences automatically.</p></div>
+      </div>
+      <div class="rr-light-workspace"><div class="card dashboard-card">
+        <button id="newRouteBtn" class="green hero-start-button">+ Start New Project</button>
+        <div class="quick-actions">
+          <div class="quick-card">
+            <div class="feature-icon">📍</div>
+            <strong>Add locations</strong>
+            <span>Use map search or saved preferred addresses.</span>
+          </div>
+          <div class="quick-card">
+            <div class="feature-icon">🕒</div>
+            <strong>Set constraints</strong>
+            <span>Choose service times, weekdays, priorities, and arrival windows.</span>
+          </div>
+          <div class="quick-card">
+            <div class="feature-icon">⚡</div>
+            <strong>Optimize</strong>
+            <span>Generate an efficient multi-day schedule with estimated arrival times.</span>
+          </div>
+        </div>
+        
+      <div class="rr-quick-settings">
+        <div class="rr-settings-panel">
+          <h3>⚙ Quick Settings <span style="color:#7dd3fc;font-size:12px">(from your preferences)</span></h3>
+          <div class="rr-settings-grid">
+            <div class="rr-setting-tile"><strong>Work Days</strong><span>Based on your weekly schedule</span></div>
+            <div class="rr-setting-tile"><strong>Work Hours</strong><span>Applied when you start a project</span></div>
+            <div class="rr-setting-tile"><strong>Lunch Break</strong><span>Uses your saved business preferences</span></div>
+            <div class="rr-setting-tile"><strong>Max Stops / Day</strong><span>Prevents overloaded schedules</span></div>
+            <div class="rr-setting-tile"><strong>Max Driving / Day</strong><span>Keeps daily routes manageable</span></div>
+            <div class="rr-setting-tile"><strong>Service Time</strong><span>Used as the default for each stop</span></div>
+          </div>
+        </div>
+        <div class="rr-promo-panel">
+          <div class="rr-promo-copy">
+            <h3>Smarter routes.<br>Happier customers.</h3>
+            <p>Save time, reduce wasted driving, and keep every appointment organized.</p>
+          </div>
+        </div>
+      </div>
+
+<details id="newProjectSavedAddresses" class="saved-address-home">
+          <summary>
+            <span>📍 Use a Saved Address</span>
+            <span style="font-size:12px;color:#91a6bf;font-weight:600">Starting point or stop</span>
+          </summary>
+          <div class="saved-address-home-body">
+            <div class="saved-address-home-note">
+              Choose one of your preferred addresses before opening the route planner.
+            </div>
+            <div id="newProjectSavedAddressList" class="saved-address-home-list">
+              <div class="note">Open this section to load your saved addresses.</div>
+            </div>
+          </div>
+        </details>
+      </div>
+    </div>
+    </div>
+</section>
+        <section id="savedProjectsView" class="app-view">
+    <div class="dashboard-single">
+      <div class="rr-tab-hero">
+        <div>
+          <div class="kicker">Project library</div>
+          <h1>Saved Projects</h1>
+          <p>Open, continue, and organize every route plan from one place.</p>
+        </div>
+      </div>
+      <div class="section-heading">
+        <h1>Saved Projects</h1>
+        <p>Open, continue, or delete your saved route plans.</p>
+      </div>
+      <div class="visual-strip">
+        <div class="visual-strip-card">
+          <div class="icon">📁</div>
+          <h3>Continue instantly</h3>
+          <p>Open a saved route and pick up exactly where you left off.</p>
+        </div>
+        <div class="visual-strip-card">
+          <div class="icon">🗺️</div>
+          <h3>Keep routes organized</h3>
+          <p>Separate weekly plans, recurring customers, and service areas.</p>
+        </div>
+        <div class="visual-strip-card">
+          <div class="icon">⚡</div>
+          <h3>Reuse your work</h3>
+          <p>Save time by building new schedules from past projects.</p>
+        </div>
+      </div>
+      <div class="card dashboard-card">
+        <h2>Your Projects</h2>
+        <p>Create a new route or continue working on a saved project.</p>
+        <button id="newRouteBtn" class="green">+ Create New Route</button>
+        <div id="dashboardProjects" class="project-cards" style="margin-top:16px">
+          <div class="note">Loading saved projects…</div>
+        </div>
+    </div>
+  </section>
+        <section id="preferredAddressesView" class="app-view">
+    <div class="dashboard-single">
+      <div class="rr-tab-hero">
+        <div>
+          <div class="kicker">Address book</div>
+          <h1>Preferred Addresses</h1>
+          <p>Save customers and recurring locations, then reuse them as a depot or route stop.</p>
+        </div>
+      </div>
+      <div class="section-heading">
+        <h1>Preferred Addresses</h1>
+        <p>Save recurring customers, offices, and service locations.</p>
+      </div>
+      <div class="visual-strip">
+        <div class="visual-strip-card">
+          <div class="icon">📍</div>
+          <h3>Save frequent stops</h3>
+          <p>Store customers and recurring locations once, then reuse them anytime.</p>
+        </div>
+        <div class="visual-strip-card">
+          <div class="icon">✉️</div>
+          <h3>Keep contact details</h3>
+          <p>Add optional email addresses for estimated-arrival notifications.</p>
+        </div>
+        <div class="visual-strip-card">
+          <div class="icon">🚐</div>
+          <h3>Start or stop</h3>
+          <p>Use any saved address as a depot or add it directly to a route.</p>
+        </div>
+      </div>
+      <div class="card dashboard-card address-book-panel">
+        <h2>Preferred Addresses</h2>
+        <p>Save customers, offices, or recurring locations and add them to a route anytime.</p>
+
+        <div class="address-book-grid">
+          <div>
+            <label>Contact or location name</label>
+            <input id="savedAddressName" placeholder="Example: ABC Dental Office">
+          </div>
+          <div>
+            <label>Email <span style="font-weight:400;color:#7f93aa">(optional)</span></label>
+            <input id="savedAddressEmail" type="email" placeholder="contact@example.com">
+          </div>
+        </div>
+
+        <label>Address</label>
+        <input id="savedAddressAddress" placeholder="Street, city, state, ZIP">
+
+        <div class="row">
+          <button id="savePreferredAddressBtn" class="green">Save address</button>
+          <button id="clearPreferredAddressBtn" class="secondary">Clear form</button>
+        </div>
+
+        <div id="preferredAddressMessage" class="note" style="display:none"></div>
+        <div id="preferredAddressList" class="address-list"></div>
+      </div>
+    </div>
+  </section>
+        <section id="profileView" class="app-view">
+    <div class="dashboard-single">
+      <div class="rr-tab-hero">
+        <div>
+          <div class="kicker">Workspace settings</div>
+          <h1>Business Preferences</h1>
+          <p>Set your schedule, regional settings, notifications, and route defaults once.</p>
+        </div>
+      </div>
+      <div class="section-heading">
+        <h1>Your Profile</h1>
+        <p>Manage your personal and business information.</p>
+      </div>
+      <div class="preference-visual-banner">
+        <div>
+          <strong>Set it once. Use it everywhere.</strong>
+          <span>Your schedule, region, notifications, and optimization defaults apply to every new project.</span>
+        </div>
+        <div class="route-line">📍 ─ ─ ─ 🚐 ─ ─ ─ 🏁</div>
+      </div>
+      
+<div class="preferences-grid">
+  <div class="pref-card">
+    <h3>🏢 Business Information</h3>
+    <div class="pref-grid">
+      <div><label>First name</label><input id="profileFirstName"></div>
+      <div><label>Last name</label><input id="profileLastName"></div>
+      <div><label>Business name</label><input id="profileBusinessName"></div>
+      <div><label>Business type</label>
+        <select id="prefBusinessType">
+          <option value="">Select type</option><option>HVAC</option><option>Plumbing</option>
+          <option>Electrical</option><option>Solar</option><option>Pest Control</option>
+          <option>Cleaning</option><option>Home Inspection</option><option>Healthcare</option>
+          <option>Delivery</option><option>Other</option>
+        </select>
+      </div>
+      <div><label>Phone</label><input id="prefBusinessPhone" type="tel"></div>
+      <div><label>Website</label><input id="prefBusinessWebsite" type="url"></div>
+    </div>
+  </div>
+
+  <div class="pref-card">
+    <h3>📅 Weekly Schedule</h3>
+    <div id="weeklyScheduleBody" class="pref-days"></div>
+  </div>
+
+  <div class="pref-card">
+    <h3>⏱ Working Preferences</h3>
+    <div class="pref-grid three">
+      <div><label>Lunch start</label><select id="prefLunchStart"></select></div>
+      <div><label>Lunch end</label><select id="prefLunchEnd"></select></div>
+      <div><label>Default service time</label>
+        <select id="prefServiceMinutes"><option value="20">20 min</option><option value="30">30 min</option><option value="40" selected>40 min</option><option value="45">45 min</option><option value="60">60 min</option><option value="90">90 min</option></select>
+      </div>
+      <div><label>Buffer time</label>
+        <select id="prefBufferMinutes"><option value="0">None</option><option value="5">5 min</option><option value="10" selected>10 min</option><option value="15">15 min</option><option value="30">30 min</option></select>
+      </div>
+      <div><label>Max stops/day</label><input id="prefMaxStops" type="number" min="1" value="10"></div>
+      <div><label>Max driving/day</label>
+        <select id="prefMaxDrivingMinutes"><option value="120">2 hours</option><option value="180" selected>3 hours</option><option value="240">4 hours</option><option value="300">5 hours</option></select>
+      </div>
+      <div><label>Max workday</label>
+        <select id="prefMaxWorkMinutes"><option value="420">7 hours</option><option value="480" selected>8 hours</option><option value="540">9 hours</option><option value="600">10 hours</option></select>
+      </div>
+    </div>
+  </div>
+
+  <div class="pref-card">
+    <h3>🌍 Regional Settings</h3>
+    <div class="pref-grid three">
+      <div><label>Region</label><select id="prefRegion"><option value="US">United States</option><option value="CA">Canada</option><option value="UK">United Kingdom</option><option value="EU">Europe</option><option value="AU">Australia</option><option value="OTHER">Other</option></select></div>
+      <div><label>Time zone</label><input id="prefTimezone"></div>
+      <div><label>Distance</label><select id="prefDistanceUnit"><option value="miles">Miles</option><option value="kilometers">Kilometers</option></select></div>
+      <div><label>Time format</label><select id="prefTimeFormat"><option value="12h">12-hour</option><option value="24h">24-hour</option></select></div>
+      <div><label>Date format</label><select id="prefDateFormat"><option>MM/DD/YYYY</option><option>DD/MM/YYYY</option><option>YYYY-MM-DD</option></select></div>
+      <div><label>Temperature</label><select id="prefTemperatureUnit"><option value="F">Fahrenheit</option><option value="C">Celsius</option></select></div>
+    </div>
+  </div>
+
+  <div class="pref-card">
+    <h3>🔔 Notifications</h3>
+    <div class="pref-toggle"><span>Prepare customer arrival emails</span><input id="prefSendArrivalEmails" type="checkbox" checked></div>
+    <div class="pref-toggle"><span>Weekly schedule email</span><input id="prefSendWeeklyEmail" type="checkbox"></div>
+    <div class="pref-toggle"><span>Delay notifications</span><input id="prefSendDelayEmails" type="checkbox"></div>
+  </div>
+
+  <div class="pref-card">
+    <h3>⚙️ Optimization</h3>
+    <div class="pref-grid">
+      <div><label>Goal</label><select id="prefOptimizationGoal"><option value="balanced">Balanced</option><option value="driving_time">Minimize driving</option><option value="customer_priority">Priority first</option><option value="working_days">Minimize workdays</option></select></div>
+      <div><label>Overtime</label><select id="prefAllowOvertime"><option value="false">Do not allow</option><option value="true">Allow</option></select></div>
+    </div>
+    <div class="pref-toggle"><span>Group nearby cities</span><input id="prefGroupCities" type="checkbox" checked></div>
+    <div class="pref-toggle"><span>Avoid toll roads</span><input id="prefAvoidTolls" type="checkbox"></div>
+    <div class="pref-toggle"><span>Avoid highways</span><input id="prefAvoidHighways" type="checkbox"></div>
+  </div>
+
+  <div class="pref-actions">
+    <div id="profileMessage"></div>
+    <button id="resetPreferencesBtn" class="secondary">Restore defaults</button>
+    <button id="saveProfileBtn" class="green">Save Preferences</button>
+  </div>
+</div>
+
+    </div>
+  </section>
+</section>
+
+
+
+<section id="resetPasswordScreen" style="display:none;min-height:100vh;align-items:center;justify-content:center;padding:24px">
+  <div class="login-card reset-shell">
+    <img class="brand-logo login-brand-logo" src="routeroush-logo.png" alt="RouteRoush logo">
+    <h1>Create a new password</h1>
+    <p>Enter a new password for your RouteRoush account.</p>
+
+    <label>New password</label>
+    <input id="newPassword" type="password" autocomplete="new-password" placeholder="At least 8 characters">
+
+    <label>Confirm new password</label>
+    <input id="confirmNewPassword" type="password" autocomplete="new-password" placeholder="Repeat the new password">
+
+    <button id="saveNewPasswordBtn" class="green" style="margin-top:14px">Update password</button>
+    <div id="resetPasswordMessage" class="note" style="display:none"></div>
+  </div>
+</section>
+      </div>
+    </main>
+  </div>
+</section>
+<section id="appScreen">
+  <div class="planner-top-actions">
+    <button id="backDashboardBtn" class="secondary">← Back to tabs</button>
+    <div class="top-user-bar" style="margin:0;padding:0">
+    <span id="topUserEmail"></span>
+    <button id="topLogoutBtn" class="secondary">Log out</button>
+    </div>
+  </div>
+<header>
+  <div class="brand-lockup">
+    <img class="brand-logo header-brand-logo" src="routeroush-logo.png" alt="RouteRoush logo">
+    <div class="header-brand-text">
+      <h1>RouteRoush</h1>
+      <p>Smart multi-day route planning for field visits, service stops, and weekly schedules.</p>
+    </div>
+  </div>
+</header>
+<div class="layout">
+<aside class="card sidebar">
+  <div class="note"><b>Steps:</b> Set the red starting point, add blue stops, select days and preferred stops per day, then optimize. Every day starts and ends at the same depot.</div>
+
+  <div class="auth-panel" style="display:none">
+    <h3>Account</h3>
+    <label>Email</label>
+    <input id="authEmail" type="email" placeholder="you@example.com">
+    <label>Password</label>
+    <input id="authPassword" type="password" placeholder="At least 8 characters">
+    <div class="row">
+      <button id="signupBtn">Create account</button>
+      <button id="loginBtn" class="green">Log in</button>
+    </div>
+    <button id="logoutBtn" class="secondary" style="margin-top:9px">Log out</button>
+    <div id="authMessage" class="note" style="display:none"></div>
+    <div id="userState" class="user-state">Not logged in</div>
+  </div>
+
+  <div class="project-panel">
+    <h3>Saved Projects</h3>
+    <label>Project name</label>
+    <input id="projectName" placeholder="Example: Monday Phoenix Route">
+    <div class="row">
+      <button id="saveProjectBtn" class="green">Save project</button>
+      <button id="refreshProjectsBtn" class="secondary">Refresh list</button>
+    </div>
+    <select id="projectSelect" class="project-list">
+      <option value="">No saved projects loaded</option>
+    </select>
+    <div class="row">
+      <button id="loadProjectBtn">Load selected</button>
+      <button id="deleteProjectBtn" class="red">Delete selected</button>
+    </div>
+    <div id="projectMessage" class="note" style="display:none"></div>
+  </div>
+
+  <div class="mode">
+    <button id="modeDepot">Set starting point</button>
+    <button id="modeStop" class="active">Add stops</button>
+  </div>
+
+  <label>Search address</label>
+  <input id="searchText" placeholder="Phoenix Zoo, Phoenix, AZ">
+  <div class="row"><button id="searchBtn">Search</button><button id="addSearchBtn" class="green" disabled>Add result</button></div>
+  <div id="searchStatus" class="note" style="display:none"></div>
+
+  <label>Number of days</label>
+  <input id="daysInput" type="number" min="1" max="14" value="2">
+
+  <label>Preferred stops per day</label>
+  <input id="perDayInput" type="number" min="1" max="30" value="8">
+
+  <label>First route weekday</label>
+  <select id="weekdayInput">
+    <option value="1">Monday</option><option value="2">Tuesday</option><option value="3">Wednesday</option>
+    <option value="4">Thursday</option><option value="5">Friday</option><option value="6">Saturday</option><option value="0">Sunday</option>
+  </select>
+
+  <label>Start time</label>
+    <select id="startInput">
+      <option value="04:00">4:00 AM</option>
+      <option value="04:30">4:30 AM</option>
+      <option value="05:00">5:00 AM</option>
+      <option value="05:30">5:30 AM</option>
+      <option value="06:00" selected>6:00 AM</option>
+      <option value="06:30">6:30 AM</option>
+      <option value="07:00">7:00 AM</option>
+      <option value="07:30">7:30 AM</option>
+      <option value="08:00">8:00 AM</option>
+      <option value="08:30">8:30 AM</option>
+      <option value="09:00">9:00 AM</option>
+    </select>
+  <label>Minutes at each stop</label>
+  <select id="serviceInput"><option>20</option><option>30</option><option selected>40</option><option>60</option></select>
+
+  <div id="capacityMessage" class="message warn"></div>
+  <button id="optimizeBtn" class="green" style="margin-top:12px">Optimize routes</button>
+  <div id="runMessage" class="message ok"></div>
+
+  <div class="row"><button id="clearStops" class="secondary">Clear stops</button><button id="clearAll" class="red">Clear all</button></div>
+
+  <div id="pointList" class="list" style="display:none"></div>
+</aside>
+
+<main>
+  <div id="map" class="card"></div>
+  <section class="card results">
+    <div id="printTitle"></div>
+    <div id="tabs" class="tabs"></div>
+    <div class="stats">
+      <div class="stat">Stops<b id="sStops">—</b></div>
+      <div class="stat">Driving time<b id="sDrive">—</b></div>
+      <div class="stat">Finish time<b id="sFinish">—</b></div>
+      <div class="stat">Improvement<b id="sImprove">—</b></div>
+    </div>
+    <div class="row actions"><button id="mapsBtn">Open in Google Maps</button><button id="printBtn" class="green">Print selected day</button></div>
+    <div style="overflow:auto;margin-top:12px"><table><thead><tr><th>#</th><th>Location</th><th>Arrival</th><th>Departure</th><th>Travel</th></tr></thead><tbody id="tbody"></tbody></table></div>
+  </section>
+</main>
+</div>
+
+<div id="emailModal" class="email-modal">
+  <div class="email-modal-card">
+    <h2 style="margin-top:0">Send estimated arrival emails?</h2>
+    <p>Select the contacts you want to notify. RouteRoush will open a prefilled email draft for each selected contact.</p>
+    <div id="emailPreviewList"></div>
+    <div class="modal-actions">
+      <button id="closeEmailModalBtn" class="secondary">Not now</button>
+      <button id="openEmailDraftsBtn" class="green">Open selected email drafts</button>
+    </div>
+  </div>
+
+<script>
+  const SUPABASE_URL = "https://tirwsczlvkuwhwkpdpik.supabase.co";
+    const SUPABASE_PUBLISHABLE_KEY =
+      "sb_publishable_D7bR7EpnFWpM0EsLc0mnqQ_0zcF9jdS";
+
+    const supabaseClient = supabase.createClient(
+      SUPABASE_URL,
+      SUPABASE_PUBLISHABLE_KEY
+    );
+
+let recoveryMode = false;
+
+
+window.addEventListener('error',event=>{
+  console.error('RouteRoush runtime error:',event.error||event.message);
+  const box=document.getElementById('loginMessage');
+  if(box && document.getElementById('loginScreen')?.style.display!=='none'){
+    box.style.display='block';
+    box.style.background='#fff1f0';
+    box.style.color='#b42318';
+    box.textContent=`Website error: ${event.message}. Please refresh the page.`;
+  }
+});
+
+'use strict';
+
+const $ = id => document.getElementById(id);
+
+/* ============================================================
+   SERVICE CONFIGURATION
+   Fill these in before launch. With keys empty, the app falls
+   back to OSM/Nominatim which is ONLY acceptable for local dev
+   (their usage policies prohibit production/commercial use).
+   - MapTiler:  https://cloud.maptiler.com  (free: 100k tiles/mo)
+   - Geoapify:  https://www.geoapify.com    (free: 3k requests/day)
+   - OSRM:      public demo is fine for testing; self-host for
+                production (see /table API docs).
+   ============================================================ */
+const CONFIG = {
+  MAPTILER_API_KEY: '',          // e.g. 'AbCdEf123...'
+  GEOAPIFY_API_KEY: '',          // e.g. 'a1b2c3d4...'
+  OSRM_URL: 'https://router.project-osrm.org'
+};
+
+/* --- XSS protection: escape ALL user-supplied text before it
+       enters an HTML template. ------------------------------- */
+function esc(value){
+  return String(value ?? '')
+    .replaceAll('&','&amp;')
+    .replaceAll('<','&lt;')
+    .replaceAll('>','&gt;')
+    .replaceAll('"','&quot;')
+    .replaceAll("'",'&#39;');
+}
+
+/* --- Geocoding wrappers (Geoapify with dev-only fallback) ---- */
+async function geocodeSearch(query){
+  if(CONFIG.GEOAPIFY_API_KEY){
+    const url=`https://api.geoapify.com/v1/geocode/search?text=${encodeURIComponent(query)}&limit=1&filter=countrycode:us&format=json&apiKey=${CONFIG.GEOAPIFY_API_KEY}`;
+    const r=await fetch(url);
+    if(!r.ok)throw new Error('Geocoding service error.');
+    const d=await r.json();
+    if(!d.results?.length)return null;
+    const x=d.results[0];
+    return {lat:x.lat,lon:x.lon,display:x.formatted};
+  }
+  console.warn('RouteRoush: using Nominatim fallback. Set CONFIG.GEOAPIFY_API_KEY before launch.');
+  const r=await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=us&q=${encodeURIComponent(query)}`);
+  const a=await r.json();
+  if(!a.length)return null;
+  return {lat:+a[0].lat,lon:+a[0].lon,display:a[0].display_name};
+}
+async function geocodeReverse(lat,lon){
+  const fallback=`${lat.toFixed(5)}, ${lon.toFixed(5)}`;
+  try{
+    if(CONFIG.GEOAPIFY_API_KEY){
+      const r=await fetch(`https://api.geoapify.com/v1/geocode/reverse?lat=${lat}&lon=${lon}&format=json&apiKey=${CONFIG.GEOAPIFY_API_KEY}`);
+      const d=await r.json();
+      return d.results?.[0]?.formatted||fallback;
+    }
+    const r=await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`);
+    const d=await r.json();
+    return d.display_name||fallback;
+  }catch{return fallback;}
+}
+
+/* --- Supabase helper: current user id for explicit row scoping
+       (defense in depth on top of RLS). ---------------------- */
+async function currentUserId(){
+  const {data}=await supabaseClient.auth.getSession();
+  return data.session?.user?.id||null;
+}
+
+const map = L.map('map').setView([33.49,-111.99],11);
+if(CONFIG.MAPTILER_API_KEY){
+  L.tileLayer(`https://api.maptiler.com/maps/streets-v2/256/{z}/{x}/{y}.png?key=${CONFIG.MAPTILER_API_KEY}`,{
+    maxZoom:19,
+    attribution:'&copy; <a href="https://www.maptiler.com/">MapTiler</a> &copy; OpenStreetMap contributors'
+  }).addTo(map);
+}else{
+  console.warn('RouteRoush: using OSM demo tiles. Set CONFIG.MAPTILER_API_KEY before launch.');
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap contributors'}).addTo(map);
+}
+
+const els = {
+  modeDepot:$('modeDepot'), modeStop:$('modeStop'), searchText:$('searchText'), searchBtn:$('searchBtn'),
+  addSearchBtn:$('addSearchBtn'), searchStatus:$('searchStatus'), days:$('daysInput'), perDay:$('perDayInput'),
+  weekday:$('weekdayInput'), start:$('startInput'), service:$('serviceInput'), capacity:$('capacityMessage'),
+  optimize:$('optimizeBtn'), run:$('runMessage'), clearStops:$('clearStops'), clearAll:$('clearAll'),
+  pointList:$('pointList'), tabs:$('tabs'), sStops:$('sStops'), sDrive:$('sDrive'),
+  sFinish:$('sFinish'), sImprove:$('sImprove'), maps:$('mapsBtn'), print:$('printBtn'),
+  printTitle:$('printTitle'), tbody:$('tbody'),
+  authEmail:$('authEmail'), authPassword:$('authPassword'),
+  signupBtn:$('signupBtn'), loginBtn:$('loginBtn'), logoutBtn:$('logoutBtn'),
+  authMessage:$('authMessage'), userState:$('userState'),
+  projectName:$('projectName'), saveProjectBtn:$('saveProjectBtn'),
+  refreshProjectsBtn:$('refreshProjectsBtn'), projectSelect:$('projectSelect'),
+  loadProjectBtn:$('loadProjectBtn'), deleteProjectBtn:$('deleteProjectBtn'),
+  projectMessage:$('projectMessage')
+};
+
+
+const loginScreen = document.getElementById('loginScreen');
+const appScreen = document.getElementById('appScreen');
+const firstName = document.getElementById('firstName');
+const lastName = document.getElementById('lastName');
+const businessName = document.getElementById('businessName');
+const loginEmail = document.getElementById('loginEmail');
+const loginPassword = document.getElementById('loginPassword');
+const signupEmail = document.getElementById('signupEmail');
+const signupPassword = document.getElementById('signupPassword');
+const showLoginTab = document.getElementById('showLoginTab');
+const showSignupTab = document.getElementById('showSignupTab');
+const loginForm = document.getElementById('loginForm');
+const signupForm = document.getElementById('signupForm');
+const dashboardScreen = document.getElementById('dashboardScreen');
+const dashboardWelcome = document.getElementById('dashboardWelcome');
+const dashboardProjects = document.getElementById('dashboardProjects');
+const dashboardLogoutBtn = document.getElementById('dashboardLogoutBtn');
+
+const navNewProject = document.getElementById('navNewProject');
+const navSavedProjects = document.getElementById('navSavedProjects');
+const navPreferredAddresses = document.getElementById('navPreferredAddresses');
+const navProfile = document.getElementById('navProfile');
+const navUserLabel = document.getElementById('navUserLabel');
+const rrSidebarName=document.getElementById('rrSidebarName');
+const rrSidebarEmail=document.getElementById('rrSidebarEmail');
+const newProjectView = document.getElementById('newProjectView');
+const savedProjectsView = document.getElementById('savedProjectsView');
+const preferredAddressesView = document.getElementById('preferredAddressesView');
+const profileView = document.getElementById('profileView');
+
+const newProjectSavedAddresses = document.getElementById('newProjectSavedAddresses');
+const newProjectSavedAddressList = document.getElementById('newProjectSavedAddressList');
+
+
+const newRouteBtn = document.getElementById('newRouteBtn');
+const backDashboardBtn = document.getElementById('backDashboardBtn');
+const profileFirstName = document.getElementById('profileFirstName');
+const profileLastName = document.getElementById('profileLastName');
+const profileBusinessName = document.getElementById('profileBusinessName');
+const saveProfileBtn = document.getElementById('saveProfileBtn');
+const profileMessage = document.getElementById('profileMessage');
+
+const prefBusinessType=document.getElementById('prefBusinessType');
+const prefBusinessPhone=document.getElementById('prefBusinessPhone');
+const prefBusinessWebsite=document.getElementById('prefBusinessWebsite');
+const weeklyScheduleBody=document.getElementById('weeklyScheduleBody');
+const prefLunchStart=document.getElementById('prefLunchStart');
+const prefLunchEnd=document.getElementById('prefLunchEnd');
+const prefServiceMinutes=document.getElementById('prefServiceMinutes');
+const prefBufferMinutes=document.getElementById('prefBufferMinutes');
+const prefMaxStops=document.getElementById('prefMaxStops');
+const prefMaxDrivingMinutes=document.getElementById('prefMaxDrivingMinutes');
+const prefMaxWorkMinutes=document.getElementById('prefMaxWorkMinutes');
+const prefRegion=document.getElementById('prefRegion');
+const prefTimezone=document.getElementById('prefTimezone');
+const prefDistanceUnit=document.getElementById('prefDistanceUnit');
+const prefTimeFormat=document.getElementById('prefTimeFormat');
+const prefDateFormat=document.getElementById('prefDateFormat');
+const prefTemperatureUnit=document.getElementById('prefTemperatureUnit');
+const prefSendArrivalEmails=document.getElementById('prefSendArrivalEmails');
+const prefSendWeeklyEmail=document.getElementById('prefSendWeeklyEmail');
+const prefSendDelayEmails=document.getElementById('prefSendDelayEmails');
+const prefOptimizationGoal=document.getElementById('prefOptimizationGoal');
+const prefAllowOvertime=document.getElementById('prefAllowOvertime');
+const prefGroupCities=document.getElementById('prefGroupCities');
+const prefAvoidTolls=document.getElementById('prefAvoidTolls');
+const prefAvoidHighways=document.getElementById('prefAvoidHighways');
+const resetPreferencesBtn=document.getElementById('resetPreferencesBtn');
+
+
+const savedAddressName = document.getElementById('savedAddressName');
+const savedAddressEmail = document.getElementById('savedAddressEmail');
+const savedAddressAddress = document.getElementById('savedAddressAddress');
+const savePreferredAddressBtn = document.getElementById('savePreferredAddressBtn');
+const clearPreferredAddressBtn = document.getElementById('clearPreferredAddressBtn');
+const preferredAddressMessage = document.getElementById('preferredAddressMessage');
+const preferredAddressList = document.getElementById('preferredAddressList');
+const emailModal = document.getElementById('emailModal');
+const emailPreviewList = document.getElementById('emailPreviewList');
+const closeEmailModalBtn = document.getElementById('closeEmailModalBtn');
+const openEmailDraftsBtn = document.getElementById('openEmailDraftsBtn');
+
+const loginOnlyBtn = document.getElementById('loginOnlyBtn');
+const signupOnlyBtn = document.getElementById('signupOnlyBtn');
+const resendConfirmationBtn = document.getElementById('resendConfirmationBtn');
+const loginMessage = document.getElementById('loginMessage');
+const forgotPasswordBtn = document.getElementById('forgotPasswordBtn');
+const googleLoginBtn = document.getElementById('googleLoginBtn');
+const resetPasswordScreen = document.getElementById('resetPasswordScreen');
+const newPassword = document.getElementById('newPassword');
+const confirmNewPassword = document.getElementById('confirmNewPassword');
+const saveNewPasswordBtn = document.getElementById('saveNewPasswordBtn');
+const resetPasswordMessage = document.getElementById('resetPasswordMessage');
+const topUserEmail = document.getElementById('topUserEmail');
+const topLogoutBtn = document.getElementById('topLogoutBtn');
+
+showLoginTab.onclick=()=>{
+  showLoginTab.classList.add('active');showSignupTab.classList.remove('active');
+  loginForm.style.display='block';signupForm.style.display='none';loginMessage.style.display='none';
+};
+showSignupTab.onclick=()=>{
+  showSignupTab.classList.add('active');showLoginTab.classList.remove('active');
+  signupForm.style.display='block';loginForm.style.display='none';loginMessage.style.display='none';
+};
+
+
+function showLoginMessage(text,isError=false){
+  loginMessage.style.display='block';
+  loginMessage.textContent=text;
+  loginMessage.style.background=isError?'#fff1f0':'#f0fdf4';
+  loginMessage.style.color=isError?'#b42318':'#166534';
+}
+
+
+function showResetPasswordMessage(text,isError=false){
+  resetPasswordMessage.style.display='block';
+  resetPasswordMessage.textContent=text;
+  resetPasswordMessage.style.background=isError?'#fff1f0':'#f0fdf4';
+  resetPasswordMessage.style.color=isError?'#b42318':'#166534';
+}
+
+function showResetPasswordScreen(){
+  loginScreen.style.display='none';
+  appScreen.style.display='none';
+  resetPasswordScreen.style.display='flex';
+}
+
+function showLoginScreen(){
+  loginScreen.style.display='flex';
+  dashboardScreen.style.display='none';
+  appScreen.style.display='none';
+  topUserEmail.textContent='';
+}
+function showDashboardScreen(user,profile){
+  if(recoveryMode){showResetPasswordScreen();return;}
+  loginScreen.style.display='none';
+  resetPasswordScreen.style.display='none';
+  appScreen.style.display='none';
+  dashboardScreen.style.display='block';
+
+  const first=profile?.first_name||user?.user_metadata?.first_name||'';
+  const last=profile?.last_name||user?.user_metadata?.last_name||'';
+  const business=profile?.business_name||user?.user_metadata?.business_name||'';
+  const displayName=business||[first,last].filter(Boolean).join(' ')||'RouteRoush User';
+
+  navUserLabel.textContent=displayName;
+  rrSidebarName.textContent=displayName;
+  rrSidebarEmail.textContent=user?.email||'';
+  dashboardWelcome.textContent=`Welcome${first?`, ${first}`:''}`;
+
+  profileFirstName.value=first;
+  profileLastName.value=last;
+  profileBusinessName.value=business;
+  showDashboardTab('new');
+}
+
+function showAppScreen(user){
+  loginScreen.style.display='none';
+  dashboardScreen.style.display='none';
+  appScreen.style.display='block';
+
+  const meta=user?.user_metadata || {};
+  const fullName=[meta.first_name,meta.last_name].filter(Boolean).join(' ');
+  const business=meta.business_name || '';
+
+  if(fullName && business){
+    topUserEmail.textContent=`${fullName} · ${business}`;
+  }else if(fullName){
+    topUserEmail.textContent=fullName;
+  }else{
+    topUserEmail.textContent=user?.email ? `Signed in as ${user.email}` : '';
+  }
+
+  setTimeout(()=>map.invalidateSize(),100);
+}
+
+let mode='stop', depot=null, depotMarker=null, stops=[], searchResult=null, searchMarker=null;
+let plans=[], selected=0, routeLine=null;
+
+const mkIcon=color=>new L.Icon({
+  iconUrl:`https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-${color}.png`,
+  shadowUrl:'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+  iconSize:[25,41],iconAnchor:[12,41],popupAnchor:[1,-34],shadowSize:[41,41]
+});
+const redIcon=mkIcon('red'), blueIcon=mkIcon('blue'), greenIcon=mkIcon('green');
+
+function setMode(v){mode=v;els.modeDepot.classList.toggle('active',v==='depot');els.modeStop.classList.toggle('active',v==='stop');}
+els.modeDepot.onclick=()=>setMode('depot'); els.modeStop.onclick=()=>setMode('stop');
+
+async function reverse(lat,lon){
+  return geocodeReverse(lat,lon);
+}
+async function addPoint(lat,lon,address){
+  const addr=address||await reverse(lat,lon);
+  if(mode==='depot'){
+    if(depotMarker)map.removeLayer(depotMarker);
+    depot={lat,lon,address:addr};
+    depotMarker=L.marker([lat,lon],{icon:redIcon,draggable:true}).addTo(map).bindPopup(`<b>Start / return</b><br>${esc(addr)}`);
+    depotMarker.on('dragend',async e=>{const p=e.target.getLatLng();depot.lat=p.lat;depot.lon=p.lng;depot.address=await reverse(p.lat,p.lng);invalidate();renderPoints();});
+    setMode('stop');
+  }else{
+    const s={id:crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random()),lat,lon,address:addr,marker:null,serviceMinutes:Number(els.service.value)||40,earliest:'',latest:'',requiredWeekday:'',priority:'normal'};
+    s.marker=L.marker([lat,lon],{icon:blueIcon,draggable:true}).addTo(map);
+    s.marker.on('dragend',async e=>{const p=e.target.getLatLng();s.lat=p.lat;s.lon=p.lng;s.address=await reverse(p.lat,p.lng);invalidate();renderPoints();});
+    stops.push(s);
+  }
+  invalidate();renderPoints();updateCapacity();
+}
+map.on('click',e=>addPoint(e.latlng.lat,e.latlng.lng));
+
+els.searchBtn.onclick=async()=>{
+  const q=els.searchText.value.trim(); if(!q)return;
+  els.searchStatus.style.display='block';els.searchStatus.textContent='Searching...';els.addSearchBtn.disabled=true;
+  try{
+    const g=await geocodeSearch(q);
+    if(!g){els.searchStatus.textContent='No result found.';return;}
+    searchResult={lat:g.lat,lon:g.lon,address:g.display};
+    if(searchMarker)map.removeLayer(searchMarker);
+    searchMarker=L.marker([searchResult.lat,searchResult.lon],{icon:greenIcon}).addTo(map).bindPopup(esc(searchResult.address)).openPopup();
+    map.setView([searchResult.lat,searchResult.lon],15);
+    els.searchStatus.textContent='Result found. Click Add result.';els.addSearchBtn.disabled=false;
+  }catch{els.searchStatus.textContent='Search failed. Check internet connection.';}
+};
+els.searchText.addEventListener('keydown',e=>{if(e.key==='Enter')els.searchBtn.click();});
+els.addSearchBtn.onclick=()=>{if(!searchResult)return;addPoint(searchResult.lat,searchResult.lon,searchResult.address);if(searchMarker)map.removeLayer(searchMarker);searchMarker=null;searchResult=null;els.addSearchBtn.disabled=true;};
+
+function removeStop(id){const i=stops.findIndex(s=>s.id===id);if(i<0)return;map.removeLayer(stops[i].marker);stops.splice(i,1);invalidate();renderPoints();updateCapacity();}
+window.removeStop=removeStop;
+
+function renderPoints(){
+  let h=depot
+    ? `<div class="item"><b>Start / return</b>${esc(depot.address)}</div>`
+    : `<div class="item">No starting point selected.</div>`;
+
+  stops.forEach((s,i)=>{
+    if(s.serviceMinutes==null)s.serviceMinutes=Number(els.service.value)||40;
+    if(s.earliest==null)s.earliest='';
+    if(s.latest==null)s.latest='';
+    if(s.requiredWeekday==null)s.requiredWeekday='';
+    if(s.priority==null)s.priority='normal';
+
+    h+=`<div class="item">
+      <b>Stop ${i+1}</b>${esc(s.address)}
+      <div class="constraint-grid">
+        <div>
+          <label>Service minutes</label>
+          <input type="number" min="0" value="${s.serviceMinutes}" onchange="updateStopConstraint('${s.id}','serviceMinutes',this.value)">
+        </div>
+        <div>
+          <label>Priority</label>
+          <select onchange="updateStopConstraint('${s.id}','priority',this.value)">
+            <option value="normal" ${s.priority==='normal'?'selected':''}>Normal</option>
+            <option value="high" ${s.priority==='high'?'selected':''}>High</option>
+            <option value="critical" ${s.priority==='critical'?'selected':''}>Critical</option>
+          </select>
+        </div>
+        <div>
+          <label>Earliest arrival</label>
+          <input type="time" value="${s.earliest}" onchange="updateStopConstraint('${s.id}','earliest',this.value)">
+        </div>
+        <div>
+          <label>Latest arrival</label>
+          <input type="time" value="${s.latest}" onchange="updateStopConstraint('${s.id}','latest',this.value)">
+        </div>
+        <div style="grid-column:1/-1">
+          <label>Required weekday</label>
+          <select onchange="updateStopConstraint('${s.id}','requiredWeekday',this.value)">
+            <option value="" ${s.requiredWeekday===''?'selected':''}>Any day</option>
+            <option value="1" ${s.requiredWeekday==='1'?'selected':''}>Monday</option>
+            <option value="2" ${s.requiredWeekday==='2'?'selected':''}>Tuesday</option>
+            <option value="3" ${s.requiredWeekday==='3'?'selected':''}>Wednesday</option>
+            <option value="4" ${s.requiredWeekday==='4'?'selected':''}>Thursday</option>
+            <option value="5" ${s.requiredWeekday==='5'?'selected':''}>Friday</option>
+            <option value="6" ${s.requiredWeekday==='6'?'selected':''}>Saturday</option>
+            <option value="0" ${s.requiredWeekday==='0'?'selected':''}>Sunday</option>
+          </select>
+        </div>
+      </div>
+      <span class="priority-badge">${s.priority} priority</span><br>
+      <button style="width:auto;padding:4px 8px;margin-top:7px;background:#301724;color:#fda4af" onclick="removeStop('${s.id}')">Remove</button>
+    </div>`;
+  });
+  els.pointList.innerHTML=h;
+}
+window.updateStopConstraint=(id,key,value)=>{
+  const stop=stops.find(s=>s.id===id);
+  if(!stop)return;
+  stop[key]=key==='serviceMinutes'?Math.max(0,Number(value)||0):value;
+  invalidate();
+};
+function invalidate(){plans=[];selected=0;travelMatrix=null;usedRealRouting=false;if(routeLine){map.removeLayer(routeLine);routeLine=null;}els.tabs.innerHTML='';els.tbody.innerHTML='';['sStops','sDrive','sFinish','sImprove'].forEach(id=>$(id).textContent='—');}
+
+function updateCapacity(){
+  const n=stops.length,d=Math.max(1,+els.days.value||1),p=Math.max(1,+els.perDay.value||1);
+  if(!n){els.capacity.style.display='none';return;}
+  const base=Math.floor(n/d),extra=n%d,max=base+(extra?1:0);
+  if(d>n){els.capacity.style.display='block';els.capacity.textContent=`You selected ${d} days for only ${n} stops.`;return;}
+  if(d*p===n){els.capacity.style.display='none';return;}
+  els.capacity.style.display='block';
+  if(d*p<n) els.capacity.innerHTML=`<b>Warning:</b> ${n} stops do not fit into ${d} days at ${p} stops per day. The planner will assign ${extra} day(s) with ${max} stops and ${d-extra} day(s) with ${base} stops.`;
+  else els.capacity.innerHTML=`<b>Note:</b> Capacity is larger than needed. Stops will be balanced as ${extra} day(s) with ${max} stops and ${d-extra} day(s) with ${base} stops.`;
+}
+els.days.oninput=updateCapacity;els.perDay.oninput=updateCapacity;
+
+function dist(a,b){const R=3958.7613,rad=x=>x*Math.PI/180,dl=rad(b.lat-a.lat),dn=rad(b.lon-a.lon),a1=rad(a.lat),a2=rad(b.lat);const h=Math.sin(dl/2)**2+Math.cos(a1)*Math.cos(a2)*Math.sin(dn/2)**2;return 2*R*Math.asin(Math.sqrt(h));}
+function dayName(x){return ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][x];}
+function factor(clock,wd){const h=clock/60,w=wd===0||wd===6;if(w){if(h<7)return 1.02;if(h<10)return 1.08;if(h<16)return 1.06;if(h<19)return 1.10;return 1.04;}if(h<6.5)return 1.04;if(h<7.5)return 1.14;if(h<9)return 1.30;if(h<11)return 1.16;if(h<15)return 1.10;if(h<18.5)return 1.28;return 1.08;}
+/* --- Real road travel times (OSRM distance/duration matrix) ---
+   buildTravelMatrix() fetches one matrix for depot + all stops.
+   travel() then reads real road minutes from the matrix and
+   applies the time-of-day traffic factor plus a 2-minute
+   parking/walk buffer. If the matrix is unavailable (offline,
+   OSRM down) it falls back to the haversine estimate and the UI
+   tells the user the times are estimates. */
+let travelMatrix=null;   // {durations:[[sec]], distances:[[m]]}
+let usedRealRouting=false;
+
+async function buildTravelMatrix(points){
+  travelMatrix=null;usedRealRouting=false;
+  points.forEach(p=>{delete p._mi;});
+  try{
+    if(points.length<2)return false;
+    const coords=points.map(p=>`${p.lon},${p.lat}`).join(';');
+    const r=await fetch(`${CONFIG.OSRM_URL}/table/v1/driving/${coords}?annotations=duration,distance`);
+    if(!r.ok)throw new Error(`OSRM HTTP ${r.status}`);
+    const j=await r.json();
+    if(j.code!=='Ok'||!j.durations)throw new Error(`OSRM: ${j.code||'no data'}`);
+    points.forEach((p,i)=>{p._mi=i;});
+    travelMatrix={durations:j.durations,distances:j.distances};
+    usedRealRouting=true;
+    return true;
+  }catch(err){
+    console.warn('Road routing unavailable, falling back to estimates:',err);
+    return false;
+  }
+}
+
+function matrixMinutes(a,b){
+  if(travelMatrix&&a._mi!=null&&b._mi!=null){
+    const s=travelMatrix.durations[a._mi][b._mi];
+    if(s!=null)return s/60;
+  }
+  return null;
+}
+function matrixMiles(a,b){
+  if(travelMatrix?.distances&&a._mi!=null&&b._mi!=null){
+    const m=travelMatrix.distances[a._mi][b._mi];
+    if(m!=null)return m/1609.344;
+  }
+  return null;
+}
+function travel(a,b,elapsed,start,wd){
+  const real=matrixMinutes(a,b);
+  if(real!=null)return real*factor(start+elapsed,wd)+2;
+  return ((dist(a,b)*1.22+.35)/33*60+2)*factor(start+elapsed,wd);
+}
+function clockToMinutes(value){
+  if(!value)return null;
+  const parts=value.split(':').map(Number);
+  return parts[0]*60+parts[1];
+}
+function cost(route,start,service,wd){
+  let e=0,d=0,p=depot,violations=0;
+  for(const s of route){
+    const t=travel(p,s,e,start,wd);d+=t;e+=t;
+    const earliest=clockToMinutes(s.earliest);
+    const latest=clockToMinutes(s.latest);
+    if(earliest!=null && start+e<earliest)e=earliest-start;
+    if(latest!=null && start+e>latest)violations++;
+    e+=(s.serviceMinutes??service);
+    p=s;
+  }
+  const back=travel(p,depot,e,start,wd);
+  return{drive:d+back,elapsed:e+back,violations};
+}
+function nearest(items,start,service,wd){
+  const rem=[...items],r=[];let p=depot,e=0;
+  while(rem.length){
+    let bi=0,bv=Infinity;
+    for(let i=0;i<rem.length;i++){
+      const item=rem[i];
+      const travelTime=travel(p,item,e,start,wd);
+      const arrival=start+e+travelTime;
+      const latest=clockToMinutes(item.latest);
+      const earliest=clockToMinutes(item.earliest);
+      const lateness=latest!=null?Math.max(0,arrival-latest):0;
+      const wait=earliest!=null?Math.max(0,earliest-arrival):0;
+      const priority=item.priority==='critical'?-30:item.priority==='high'?-15:0;
+      const score=travelTime+lateness*10+wait*.05+priority;
+      if(score<bv){bv=score;bi=i;}
+    }
+    const n=rem.splice(bi,1)[0];
+    const t=travel(p,n,e,start,wd);
+    e+=t;
+    const earliest=clockToMinutes(n.earliest);
+    if(earliest!=null && start+e<earliest)e=earliest-start;
+    e+=(n.serviceMinutes??service);
+    r.push(n);p=n;
+  }
+  return r;
+}
+function legMiles(a,b){const m=matrixMiles(a,b);return m!=null?m:dist(a,b);}
+function routeMiles(r){if(!r.length)return 0;let v=legMiles(depot,r[0]);for(let i=0;i<r.length-1;i++)v+=legMiles(r[i],r[i+1]);return v+legMiles(r[r.length-1],depot);}
+/* 2-opt objective: total drive minutes, with a heavy penalty per
+   time-window violation so improvements never trade a shorter
+   route for a missed arrival window. */
+function routeScore(route,start,service,wd){
+  const c=cost(route,start,service,wd);
+  return c.drive + c.violations*10000;
+}
+function improve(route,start,service,wd){
+  let best=[...route],bs=routeScore(best,start,service,wd);
+  for(let pass=0;pass<20;pass++){
+    let changed=false;
+    outer:for(let i=0;i<best.length-1;i++)for(let j=i+1;j<best.length;j++){
+      const c=[...best.slice(0,i),...best.slice(i,j+1).reverse(),...best.slice(j+1)];
+      const cc=routeScore(c,start,service,wd);
+      if(cc<bs-.0001){best=c;bs=cc;changed=true;break outer;}
+    }
+    if(!changed)break;
+  }
+  return best;
+}
+
+function balancedClusters(items,days,firstWeekday){
+  const base=Math.floor(items.length/days);
+  const extra=items.length%days;
+  const targets=Array.from({length:days},(_,i)=>base+(i<extra?1:0));
+  const groups=Array.from({length:days},()=>[]);
+  const dayWeekdays=Array.from({length:days},(_,i)=>(firstWeekday+i)%7);
+
+  const flexible=[];
+  for(const item of items){
+    if(item.requiredWeekday!==''){
+      const targetDay=dayWeekdays.indexOf(Number(item.requiredWeekday));
+      if(targetDay===-1){
+        throw new Error(`${item.address} requires ${dayName(Number(item.requiredWeekday))}, which is not included in the selected route days.`);
+      }
+      groups[targetDay].push(item);
+    }else{
+      flexible.push(item);
+    }
+  }
+
+  for(let i=0;i<groups.length;i++){
+    if(groups[i].length>targets[i]){
+      throw new Error(`Too many weekday-required stops are assigned to ${dayName(dayWeekdays[i])}. Increase stops for that day or number of route days.`);
+    }
+  }
+
+  flexible.sort((a,b)=>{
+    const pa=a.priority==='critical'?2:a.priority==='high'?1:0;
+    const pb=b.priority==='critical'?2:b.priority==='high'?1:0;
+    if(pb!==pa)return pb-pa;
+    return a.lon-b.lon;
+  });
+
+  for(const item of flexible){
+    let bestDay=-1,bestScore=Infinity;
+    for(let i=0;i<days;i++){
+      if(groups[i].length>=targets[i])continue;
+      let score=groups[i].length*1000;
+      if(groups[i].length){
+        const centroid={
+          lat:groups[i].reduce((s,x)=>s+x.lat,0)/groups[i].length,
+          lon:groups[i].reduce((s,x)=>s+x.lon,0)/groups[i].length
+        };
+        score+=dist(item,centroid);
+      }
+      if(score<bestScore){bestScore=score;bestDay=i;}
+    }
+    if(bestDay===-1)bestDay=groups.map((g,i)=>({i,n:g.length})).sort((a,b)=>a.n-b.n)[0].i;
+    groups[bestDay].push(item);
+  }
+  return groups;
+}
+
+async function optimize(){
+  els.run.style.display='block';els.run.className='message ok';els.run.textContent='Checking input...';
+  try{
+    if(!depot)throw new Error('Select a starting point first.');
+    if(!stops.length)throw new Error('Add at least one stop.');
+    const days=Math.max(1,+els.days.value||1);if(days>stops.length)throw new Error(`You selected ${days} days for only ${stops.length} stops.`);
+    const [h,m]=els.start.value.split(':').map(Number),start=h*60+m,service=+els.service.value,first=+els.weekday.value;
+    updateCapacity();
+    els.run.textContent='Fetching real road travel times...';
+    await buildTravelMatrix([depot,...stops]);
+    if(!usedRealRouting){
+      els.run.className='message warn';
+      els.run.textContent='Road routing unavailable — using straight-line estimates. Check your connection or OSRM configuration.';
+      await new Promise(r=>setTimeout(r,600));
+      els.run.className='message ok';
+    }
+    els.run.textContent=`Clustering ${stops.length} stops into ${days} days...`;
+    await new Promise(r=>setTimeout(r,25));
+    const groups=balancedClusters(stops,days,first);plans=[];
+    for(let i=0;i<groups.length;i++){
+      els.run.textContent=`Optimizing day ${i+1} of ${groups.length}...`;await new Promise(r=>setTimeout(r,15));
+      const wd=(first+i)%7,before=cost(groups[i],start,service,wd).drive;
+      const route=improve(nearest(groups[i],start,service,wd),start,service,wd);
+      const after=cost(route,start,service,wd);
+      plans.push({day:i+1,weekday:wd,route,before,drive:after.drive,elapsed:after.elapsed,violations:after.violations});
+    }
+    selected=0;renderTabs();renderPlan();els.run.textContent=usedRealRouting?'Optimization completed using real road travel times.':'Optimization completed (estimated travel times).';window.setTimeout(offerArrivalEmails,300);
+  }catch(e){els.run.className='message err';els.run.textContent=e.message;}
+}
+els.optimize.onclick=optimize;
+
+function renderTabs(){els.tabs.innerHTML=plans.map((p,i)=>`<button class="tab ${i===selected?'active':''}" onclick="selectPlan(${i})">Day ${i+1} · ${dayName(p.weekday)}</button>`).join('');}
+window.selectPlan=i=>{selected=i;renderTabs();renderPlan();};
+function fmt(x){x=Math.round(x)%1440;const h=Math.floor(x/60),m=x%60;return `${((h+11)%12)+1}:${String(m).padStart(2,'0')} ${h>=12?'PM':'AM'}`;}
+
+function buildTimeOptions(selectedValue){
+  const options=['<option value="">No restriction</option>'];
+  for(let hour=0;hour<24;hour++){
+    for(let minute of [0,15,30,45]){
+      const value=`${String(hour).padStart(2,'0')}:${String(minute).padStart(2,'0')}`;
+      const displayHour=((hour+11)%12)+1;
+      const ampm=hour>=12?'PM':'AM';
+      const label=`${displayHour}:${String(minute).padStart(2,'0')} ${ampm}`;
+      options.push(`<option value="${value}" ${selectedValue===value?'selected':''}>${label}</option>`);
+    }
+  }
+  return options.join('');
+}
+
+window.toggleStopEditor=id=>{
+  const row=document.getElementById(`editor-${id}`);
+  if(row)row.style.display=row.style.display==='none'?'table-row':'none';
+};
+
+window.updateStopAndRefresh=(id,key,value)=>{
+  const stop=stops.find(s=>s.id===id);
+  if(!stop)return;
+  stop[key]=key==='serviceMinutes'?Math.max(0,Number(value)||0):value;
+  invalidate();
+  optimize();
+};
+
+function renderPlan(){
+  const p=plans[selected],[h,m]=els.start.value.split(':').map(Number),start=h*60+m,service=+els.service.value;
+  let e=0,prev=depot,rows='';
+
+  p.route.forEach((s,i)=>{
+    const t=travel(prev,s,e,start,p.weekday);
+    let arrival=start+e+t;
+    const earliest=clockToMinutes(s.earliest);
+    const latest=clockToMinutes(s.latest);
+    let wait=0;
+
+    if(earliest!=null && arrival<earliest){
+      wait=earliest-arrival;
+      arrival=earliest;
+    }
+
+    const violation=latest!=null && arrival>latest;
+    const duration=s.serviceMinutes??service;
+    const departure=arrival+duration;
+
+    const chips=[
+      `<span class="constraint-chip">${duration} min service</span>`,
+      s.earliest?`<span class="constraint-chip">After ${fmt(clockToMinutes(s.earliest))}</span>`:'',
+      s.latest?`<span class="constraint-chip ${violation?'important':''}">Before ${fmt(clockToMinutes(s.latest))}</span>`:'',
+      s.requiredWeekday!==''?`<span class="constraint-chip">${dayName(Number(s.requiredWeekday))}</span>`:'',
+      `<span class="constraint-chip ${s.priority!=='normal'?'important':''}">${s.priority} priority</span>`
+    ].filter(Boolean).join('');
+
+    rows+=`<tr>
+      <td>${i+1}</td>
+      <td>
+        <b>${esc(s.address.split(',')[0])}</b><br>
+        <small>${esc(s.address)}</small>${s.contactName?`<br><small>${esc(s.contactName)}${s.contactEmail?` · ${esc(s.contactEmail)}`:''}</small>`:''}
+        <div class="constraint-summary">${chips}</div>
+        <button class="edit-stop-btn" onclick="toggleStopEditor('${s.id}')">Edit stop settings</button>
+      </td>
+      <td class="${violation?'violation':wait?'waiting':''}">
+        ${fmt(arrival)}${violation?' ⚠ late':wait?` · waited ${Math.round(wait)} min`:''}
+      </td>
+      <td>${fmt(departure)}</td>
+      <td>${Math.round(t)} min</td>
+    </tr>
+
+    <tr id="editor-${s.id}" class="route-edit-row" style="display:none">
+      <td></td>
+      <td colspan="4">
+        <div class="inline-editor">
+          <div>
+            <label>Service duration</label>
+            <select onchange="updateStopAndRefresh('${s.id}','serviceMinutes',this.value)">
+              ${[15,20,30,40,45,60,90,120].map(v=>`<option value="${v}" ${Number(duration)===v?'selected':''}>${v} minutes</option>`).join('')}
+            </select>
+          </div>
+
+          <div>
+            <label>Earliest arrival</label>
+            <select onchange="updateStopAndRefresh('${s.id}','earliest',this.value)">
+              ${buildTimeOptions(s.earliest)}
+            </select>
+          </div>
+
+          <div>
+            <label>Latest arrival</label>
+            <select onchange="updateStopAndRefresh('${s.id}','latest',this.value)">
+              ${buildTimeOptions(s.latest)}
+            </select>
+          </div>
+
+          <div>
+            <label>Required weekday</label>
+            <select onchange="updateStopAndRefresh('${s.id}','requiredWeekday',this.value)">
+              <option value="" ${s.requiredWeekday===''?'selected':''}>Any day</option>
+              <option value="1" ${s.requiredWeekday==='1'?'selected':''}>Monday</option>
+              <option value="2" ${s.requiredWeekday==='2'?'selected':''}>Tuesday</option>
+              <option value="3" ${s.requiredWeekday==='3'?'selected':''}>Wednesday</option>
+              <option value="4" ${s.requiredWeekday==='4'?'selected':''}>Thursday</option>
+              <option value="5" ${s.requiredWeekday==='5'?'selected':''}>Friday</option>
+              <option value="6" ${s.requiredWeekday==='6'?'selected':''}>Saturday</option>
+              <option value="0" ${s.requiredWeekday==='0'?'selected':''}>Sunday</option>
+            </select>
+          </div>
+
+          <div>
+            <label>Priority</label>
+            <select onchange="updateStopAndRefresh('${s.id}','priority',this.value)">
+              <option value="normal" ${s.priority==='normal'?'selected':''}>Normal</option>
+              <option value="high" ${s.priority==='high'?'selected':''}>High</option>
+              <option value="critical" ${s.priority==='critical'?'selected':''}>Critical</option>
+            </select>
+          </div>
+        </div>
+      </td>
+    </tr>`;
+
+    e=departure-start;
+    prev=s;
+  });
+
+  const back=travel(prev,depot,e,start,p.weekday);
+  rows+=`<tr>
+    <td>↩</td>
+    <td><b>Return to depot</b><br><small>${esc(depot.address)}</small></td>
+    <td>${fmt(start+e+back)}</td>
+    <td>—</td>
+    <td>${Math.round(back)} min</td>
+  </tr>`;
+
+  els.tbody.innerHTML=rows;
+  els.sStops.textContent=p.route.length;
+  els.sDrive.textContent=Math.round(p.drive)+' min';
+  els.sFinish.textContent=fmt(start+p.elapsed);
+
+  const imp=p.before?Math.max(0,(p.before-p.drive)/p.before*100):0;
+  els.sImprove.textContent=imp.toFixed(1)+'%'+(p.violations?` · ${p.violations} late`:'');
+
+  els.printTitle.textContent=`Day ${p.day} — ${dayName(p.weekday)} Route`;
+
+  if(routeLine)map.removeLayer(routeLine);
+  routeLine=L.polyline(
+    [[depot.lat,depot.lon],...p.route.map(s=>[s.lat,s.lon]),[depot.lat,depot.lon]],
+    {color:'#059669',weight:5}
+  ).addTo(map);
+  map.fitBounds(routeLine.getBounds(),{padding:[25,25]});
+}
+
+function buildAppointmentEmail(stop,arrival,dayLabel){
+  const recipient=stop.contactName||'there';
+  const subject=`RouteRoush appointment estimate - ${dayLabel}`;
+  const body=`Hello ${recipient},
+
+We are planning to visit you on ${dayLabel}. Our current estimated arrival time is ${fmt(arrival)}.
+
+Please note that this is an estimate and may change slightly due to traffic or earlier appointments.
+
+Thank you.`;
+
+  return {to:stop.contactEmail,subject,body};
+}
+
+function offerArrivalEmails(){
+  if(currentBusinessPreferences && !currentBusinessPreferences.send_arrival_emails)return;
+  const rows=[];
+  const [h,m]=els.start.value.split(':').map(Number);
+  const start=h*60+m;
+
+  plans.forEach(plan=>{
+    let elapsed=0,previous=depot;
+
+    plan.route.forEach(stop=>{
+      const travelTime=travel(previous,stop,elapsed,start,plan.weekday);
+      let arrival=start+elapsed+travelTime;
+      const earliest=clockToMinutes(stop.earliest);
+      if(earliest!=null && arrival<earliest)arrival=earliest;
+
+      if(stop.contactEmail){
+        const dayLabel=`Day ${plan.day} (${dayName(plan.weekday)})`;
+        const message=buildAppointmentEmail(stop,arrival,dayLabel);
+        rows.push({stop,arrival,dayLabel,...message});
+      }
+
+      elapsed=(arrival-start)+(stop.serviceMinutes??Number(els.service.value));
+      previous=stop;
+    });
+  });
+
+  if(!rows.length)return;
+
+  emailPreviewList.innerHTML=rows.map((item,index)=>`
+    <div class="email-row">
+      <label>
+        <input type="checkbox" class="arrival-email-check" data-index="${index}" checked>
+        <strong>${esc(item.stop.contactName||item.stop.address.split(',')[0])}</strong>
+        <span style="color:#9fb0c7">${esc(item.to)}</span>
+      </label>
+      <div style="margin-top:6px;color:#7dd3fc">Estimated arrival: ${fmt(item.arrival)} · ${item.dayLabel}</div>
+      <textarea id="emailBody-${index}">${esc(item.body)}</textarea>
+    </div>
+  `).join('');
+
+  emailModal.dataset.messages=JSON.stringify(rows.map(({to,subject})=>({to,subject})));
+  emailModal.style.display='flex';
+}
+
+closeEmailModalBtn.onclick=()=>{emailModal.style.display='none';};
+
+openEmailDraftsBtn.onclick=()=>{
+  const messages=JSON.parse(emailModal.dataset.messages||'[]');
+  const selected=[...document.querySelectorAll('.arrival-email-check:checked')];
+
+  if(!selected.length)return alert('Select at least one email.');
+
+  selected.forEach((checkbox,position)=>{
+    const index=Number(checkbox.dataset.index);
+    const meta=messages[index];
+    const body=document.getElementById(`emailBody-${index}`).value;
+    const mailto=`mailto:${encodeURIComponent(meta.to)}?subject=${encodeURIComponent(meta.subject)}&body=${encodeURIComponent(body)}`;
+    window.setTimeout(()=>window.open(mailto,'_blank'),position*350);
+  });
+
+  emailModal.style.display='none';
+};
+
+els.maps.onclick=()=>{if(!plans.length)return alert('Optimize routes first.');const p=plans[selected],q=new URLSearchParams({api:'1',origin:`${depot.lat},${depot.lon}`,destination:`${depot.lat},${depot.lon}`,waypoints:p.route.map(s=>`${s.lat},${s.lon}`).join('|'),travelmode:'driving'});window.open('https://www.google.com/maps/dir/?'+q.toString(),'_blank');};
+els.print.onclick=()=>{if(!plans.length)return alert('Optimize routes first.');window.print();};
+els.clearStops.onclick=()=>{stops.forEach(s=>map.removeLayer(s.marker));stops=[];invalidate();renderPoints();updateCapacity();};
+els.clearAll.onclick=()=>{els.clearStops.click();if(depotMarker)map.removeLayer(depotMarker);depot=null;depotMarker=null;renderPoints();};
+
+function showAuthMessage(text,isError=false){
+  els.authMessage.style.display='block';
+  els.authMessage.textContent=text;
+  els.authMessage.style.background=isError?'#fff1f0':'#f0fdf4';
+  els.authMessage.style.color=isError?'#b42318':'#166534';
+}
+function showProjectMessage(text,isError=false){
+  els.projectMessage.style.display='block';
+  els.projectMessage.textContent=text;
+  els.projectMessage.style.background=isError?'#fff1f0':'#f0fdf4';
+  els.projectMessage.style.color=isError?'#b42318':'#166534';
+}
+async function updateAuthState(){
+  const {data,error}=await supabaseClient.auth.getSession();
+  const user=data?.session?.user||null;
+
+  if(user){
+    const meta=user.user_metadata || {};
+    const fullName=[meta.first_name,meta.last_name].filter(Boolean).join(' ');
+    const business=meta.business_name || '';
+    els.userState.textContent=
+      fullName
+        ? `Logged in as ${fullName}${business ? ` · ${business}` : ''}`
+        : `Logged in as ${user.email}`;
+  }else{
+    els.userState.textContent='Not logged in';
+  }
+
+  return error?null:user;
+}
+
+
+
+function showPreferredAddressMessage(text,isError=false){
+  preferredAddressMessage.style.display='block';
+  preferredAddressMessage.textContent=text;
+  preferredAddressMessage.style.background=isError?'#fff1f0':'#f0fdf4';
+  preferredAddressMessage.style.color=isError?'#b42318':'#166534';
+}
+
+function clearPreferredAddressForm(){
+  savedAddressName.value='';
+  savedAddressEmail.value='';
+  savedAddressAddress.value='';
+  savePreferredAddressBtn.dataset.editId='';
+  savePreferredAddressBtn.textContent='Save address';
+}
+clearPreferredAddressBtn.onclick=clearPreferredAddressForm;
+
+savePreferredAddressBtn.onclick=async()=>{
+  const {data}=await supabaseClient.auth.getSession();
+  const user=data.session?.user;
+  if(!user)return showPreferredAddressMessage('Please log in first.',true);
+
+  const name=savedAddressName.value.trim();
+  const address=savedAddressAddress.value.trim();
+  const email=savedAddressEmail.value.trim();
+
+  if(!name || !address){
+    return showPreferredAddressMessage('Name and address are required.',true);
+  }
+
+  const editId=savePreferredAddressBtn.dataset.editId;
+  const payload={
+    user_id:user.id,
+    name,
+    address,
+    email:email||null,
+    updated_at:new Date().toISOString()
+  };
+
+  const result=editId
+    ? await supabaseClient.from('preferred_addresses').update(payload).eq('id',editId)
+    : await supabaseClient.from('preferred_addresses').insert(payload);
+
+  if(result.error)return showPreferredAddressMessage(result.error.message,true);
+
+  showPreferredAddressMessage(editId?'Address updated.':'Address saved.');
+  clearPreferredAddressForm();
+  await loadPreferredAddresses();
+};
+
+async function loadPreferredAddresses(){
+  const {data,error}=await supabaseClient
+    .from('preferred_addresses')
+    .select('*')
+    .eq('user_id',await currentUserId())
+    .order('name',{ascending:true});
+
+  if(error){
+    preferredAddressList.innerHTML=`<div class="note">${esc(error.message)}</div>`;
+    return;
+  }
+
+  if(!data.length){
+    preferredAddressList.innerHTML='<div class="note">No preferred addresses saved yet.</div>';
+    return;
+  }
+
+  preferredAddressList.innerHTML=data.map(item=>`
+    <div class="address-card">
+      <h4>${esc(item.name)}</h4>
+      <small>${esc(item.address)}</small>
+      <small>${esc(item.email||'No email saved')}</small>
+      <div class="address-card-actions">
+        <button onclick="addPreferredAddressToRoute('${item.id}')">Add to route</button>
+        <button class="secondary" onclick="editPreferredAddress('${item.id}')">Edit</button>
+        <button class="red" onclick="deletePreferredAddress('${item.id}')">Delete</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+window.editPreferredAddress=async id=>{
+  const {data,error}=await supabaseClient.from('preferred_addresses').select('*').eq('id',id).eq('user_id',await currentUserId()).single();
+  if(error)return alert(error.message);
+  savedAddressName.value=data.name;
+  savedAddressEmail.value=data.email||'';
+  savedAddressAddress.value=data.address;
+  savePreferredAddressBtn.dataset.editId=id;
+  savePreferredAddressBtn.textContent='Update address';
+};
+
+window.deletePreferredAddress=async id=>{
+  if(!confirm('Delete this preferred address?'))return;
+  const {error}=await supabaseClient.from('preferred_addresses').delete().eq('id',id).eq('user_id',await currentUserId());
+  if(error)return alert(error.message);
+  await loadPreferredAddresses();
+};
+
+async function geocodeSavedAddress(address){
+  const g=await geocodeSearch(address);
+  if(!g)throw new Error('Address could not be found on the map.');
+  return g;
+}
+
+window.addPreferredAddressToRoute=async id=>{
+  try{
+    const {data,error}=await supabaseClient.from('preferred_addresses').select('*').eq('id',id).eq('user_id',await currentUserId()).single();
+    if(error)throw error;
+    const geo=await geocodeSavedAddress(data.address);
+
+    const s={
+      id:crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random()),
+      lat:geo.lat,
+      lon:geo.lon,
+      address:geo.display,
+      marker:null,
+      serviceMinutes:Number(els.service.value)||40,
+      earliest:'',
+      latest:'',
+      requiredWeekday:'',
+      priority:'normal',
+      contactName:data.name,
+      contactEmail:data.email||''
+    };
+
+    s.marker=L.marker([s.lat,s.lon],{icon:blueIcon,draggable:true}).addTo(map);
+    stops.push(s);
+    invalidate();
+    renderPoints();
+    updateCapacity();
+    showAppScreen((await supabaseClient.auth.getSession()).data.session.user);
+    map.setView([s.lat,s.lon],14);
+  }catch(error){
+    alert(error.message||'Could not add address to route.');
+  }
+};
+
+
+function showDashboardTab(tabName){
+  const views={
+    new:newProjectView,
+    projects:savedProjectsView,
+    addresses:preferredAddressesView,
+    profile:profileView
+  };
+  const buttons={
+    new:navNewProject,
+    projects:navSavedProjects,
+    addresses:navPreferredAddresses,
+    profile:navProfile
+  };
+
+  Object.values(views).forEach(view=>view.classList.remove('active'));
+  Object.values(buttons).forEach(button=>button.classList.remove('active'));
+
+  views[tabName]?.classList.add('active');
+  buttons[tabName]?.classList.add('active');
+}
+
+navNewProject.onclick=async()=>{
+  showDashboardTab('new');
+  if(newProjectSavedAddresses.open)await loadNewProjectSavedAddresses();
+};
+navSavedProjects.onclick=async()=>{
+  showDashboardTab('projects');
+  await loadDashboardProjects();
+};
+navPreferredAddresses.onclick=async()=>{
+  showDashboardTab('addresses');
+  await loadPreferredAddresses();
+};
+navProfile.onclick=()=>showDashboardTab('profile');
+
+
+async function loadNewProjectSavedAddresses(){
+  const {data,error}=await supabaseClient
+    .from('preferred_addresses')
+    .select('*')
+    .eq('user_id',await currentUserId())
+    .order('name',{ascending:true});
+
+  if(error){
+    newProjectSavedAddressList.innerHTML=`<div class="note">${esc(error.message)}</div>`;
+    return;
+  }
+
+  if(!data.length){
+    newProjectSavedAddressList.innerHTML=`
+      <div class="note">
+        No saved addresses yet. Add one from the Preferred Addresses tab.
+      </div>`;
+    return;
+  }
+
+  newProjectSavedAddressList.innerHTML=data.map(item=>`
+    <div class="saved-address-home-card">
+      <div>
+        <h4>${esc(item.name)}</h4>
+        <small>${esc(item.address)}</small>
+        <small>${esc(item.email||'No email saved')}</small>
+      </div>
+      <div class="saved-address-home-actions">
+        <button class="secondary" onclick="useSavedAddressAsDepot('${item.id}')">Use as starting point</button>
+        <button onclick="useSavedAddressAsStop('${item.id}')">Add as stop</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+newProjectSavedAddresses.addEventListener('toggle',()=>{
+  if(newProjectSavedAddresses.open)loadNewProjectSavedAddresses();
+});
+
+async function getSavedAddressRecord(id){
+  const {data,error}=await supabaseClient
+    .from('preferred_addresses')
+    .select('*')
+    .eq('id',id)
+    .eq('user_id',await currentUserId())
+    .single();
+
+  if(error)throw error;
+  return data;
+}
+
+window.useSavedAddressAsDepot=async id=>{
+  try{
+    const saved=await getSavedAddressRecord(id);
+    const geo=await geocodeSavedAddress(saved.address);
+
+    if(depot?.marker)map.removeLayer(depot.marker);
+
+    depot={
+      lat:geo.lat,
+      lon:geo.lon,
+      address:geo.display,
+      contactName:saved.name,
+      contactEmail:saved.email||'',
+      marker:null
+    };
+
+    depot.marker=L.marker([depot.lat,depot.lon],{
+      icon:greenIcon,
+      draggable:true
+    }).addTo(map);
+
+    invalidate();
+    renderPoints();
+    updateCapacity();
+
+    const {data}=await supabaseClient.auth.getSession();
+    if(data.session?.user)showAppScreen(data.session.user);
+    map.setView([depot.lat,depot.lon],14);
+  }catch(error){
+    alert(error?.message||'Could not use this saved address as the starting point.');
+  }
+};
+
+window.useSavedAddressAsStop=async id=>{
+  try{
+    const saved=await getSavedAddressRecord(id);
+    const geo=await geocodeSavedAddress(saved.address);
+
+    const stop={
+      id:crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random()),
+      lat:geo.lat,
+      lon:geo.lon,
+      address:geo.display,
+      marker:null,
+      serviceMinutes:Number(els.service.value)||40,
+      earliest:'',
+      latest:'',
+      requiredWeekday:'',
+      priority:'normal',
+      contactName:saved.name,
+      contactEmail:saved.email||''
+    };
+
+    stop.marker=L.marker([stop.lat,stop.lon],{
+      icon:blueIcon,
+      draggable:true
+    }).addTo(map);
+
+    stops.push(stop);
+    invalidate();
+    renderPoints();
+    updateCapacity();
+
+    const {data}=await supabaseClient.auth.getSession();
+    if(data.session?.user)showAppScreen(data.session.user);
+    map.setView([stop.lat,stop.lon],14);
+  }catch(error){
+    alert(error?.message||'Could not add this saved address as a stop.');
+  }
+};
+
+
+const DEFAULT_PREFS={
+  business_type:'',business_phone:'',business_website:'',
+  weekly_schedule:{
+    monday:{enabled:true,start:'08:00',end:'17:00'},tuesday:{enabled:true,start:'08:00',end:'17:00'},
+    wednesday:{enabled:true,start:'08:00',end:'17:00'},thursday:{enabled:true,start:'08:00',end:'17:00'},
+    friday:{enabled:true,start:'08:00',end:'17:00'},saturday:{enabled:false,start:'08:00',end:'17:00'},
+    sunday:{enabled:false,start:'08:00',end:'17:00'}
+  },
+  lunch_start:'12:00',lunch_end:'13:00',default_service_minutes:40,buffer_minutes:10,
+  max_stops_per_day:10,max_driving_minutes:180,max_work_minutes:480,
+  region:'US',timezone:Intl.DateTimeFormat().resolvedOptions().timeZone||'UTC',
+  distance_unit:'miles',time_format:'12h',date_format:'MM/DD/YYYY',temperature_unit:'F',
+  send_arrival_emails:true,send_weekly_email:false,send_delay_emails:false,
+  optimization_goal:'balanced',allow_overtime:false,group_cities:true,avoid_tolls:false,avoid_highways:false
+};
+let currentBusinessPreferences=structuredClone(DEFAULT_PREFS);
+
+function timeOptions(selected){
+  let out='';
+  for(let h=0;h<24;h++)for(const m of [0,15,30,45]){
+    const v=`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+    const label=(prefTimeFormat?.value||'12h')==='24h'?v:`${((h+11)%12)+1}:${String(m).padStart(2,'0')} ${h>=12?'PM':'AM'}`;
+    out+=`<option value="${v}" ${v===selected?'selected':''}>${label}</option>`;
+  }
+  return out;
+}
+function renderSchedule(s){
+  const days=[['monday','Monday'],['tuesday','Tuesday'],['wednesday','Wednesday'],['thursday','Thursday'],['friday','Friday'],['saturday','Saturday'],['sunday','Sunday']];
+  weeklyScheduleBody.innerHTML=days.map(([k,n])=>`<div class="pref-day">
+    <div class="pref-day-name"><input id="work-${k}" type="checkbox" ${s[k]?.enabled?'checked':''}><label for="work-${k}" style="margin:0">${n}</label></div>
+    <div><label>Start</label><select id="start-${k}">${timeOptions(s[k]?.start||'08:00')}</select></div>
+    <div><label>Finish</label><select id="end-${k}">${timeOptions(s[k]?.end||'17:00')}</select></div>
+  </div>`).join('');
+}
+function collectSchedule(){
+  const r={};
+  for(const k of ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'])
+    r[k]={enabled:document.getElementById(`work-${k}`).checked,start:document.getElementById(`start-${k}`).value,end:document.getElementById(`end-${k}`).value};
+  return r;
+}
+function fillPrefs(p={}){
+  currentBusinessPreferences={...structuredClone(DEFAULT_PREFS),...p,weekly_schedule:{...structuredClone(DEFAULT_PREFS.weekly_schedule),...(p.weekly_schedule||{})}};
+  const x=currentBusinessPreferences;
+  prefBusinessType.value=x.business_type;prefBusinessPhone.value=x.business_phone;prefBusinessWebsite.value=x.business_website;
+  prefTimeFormat.value=x.time_format;renderSchedule(x.weekly_schedule);
+  prefLunchStart.innerHTML=timeOptions(x.lunch_start);prefLunchEnd.innerHTML=timeOptions(x.lunch_end);
+  prefServiceMinutes.value=x.default_service_minutes;prefBufferMinutes.value=x.buffer_minutes;prefMaxStops.value=x.max_stops_per_day;
+  prefMaxDrivingMinutes.value=x.max_driving_minutes;prefMaxWorkMinutes.value=x.max_work_minutes;
+  prefRegion.value=x.region;prefTimezone.value=x.timezone;prefDistanceUnit.value=x.distance_unit;prefDateFormat.value=x.date_format;prefTemperatureUnit.value=x.temperature_unit;
+  prefSendArrivalEmails.checked=x.send_arrival_emails;prefSendWeeklyEmail.checked=x.send_weekly_email;prefSendDelayEmails.checked=x.send_delay_emails;
+  prefOptimizationGoal.value=x.optimization_goal;prefAllowOvertime.value=String(x.allow_overtime);prefGroupCities.checked=x.group_cities;prefAvoidTolls.checked=x.avoid_tolls;prefAvoidHighways.checked=x.avoid_highways;
+}
+function collectPrefs(){return{
+  business_type:prefBusinessType.value,business_phone:prefBusinessPhone.value.trim(),business_website:prefBusinessWebsite.value.trim(),
+  weekly_schedule:collectSchedule(),lunch_start:prefLunchStart.value,lunch_end:prefLunchEnd.value,
+  default_service_minutes:+prefServiceMinutes.value,buffer_minutes:+prefBufferMinutes.value,max_stops_per_day:+prefMaxStops.value||10,
+  max_driving_minutes:+prefMaxDrivingMinutes.value,max_work_minutes:+prefMaxWorkMinutes.value,
+  region:prefRegion.value,timezone:prefTimezone.value.trim()||'UTC',distance_unit:prefDistanceUnit.value,time_format:prefTimeFormat.value,date_format:prefDateFormat.value,temperature_unit:prefTemperatureUnit.value,
+  send_arrival_emails:prefSendArrivalEmails.checked,send_weekly_email:prefSendWeeklyEmail.checked,send_delay_emails:prefSendDelayEmails.checked,
+  optimization_goal:prefOptimizationGoal.value,allow_overtime:prefAllowOvertime.value==='true',group_cities:prefGroupCities.checked,avoid_tolls:prefAvoidTolls.checked,avoid_highways:prefAvoidHighways.checked
+}}
+async function loadBusinessPreferences(user){
+  const {data,error}=await supabaseClient.from('business_preferences').select('preferences').eq('user_id',user.id).maybeSingle();
+  fillPrefs(error?DEFAULT_PREFS:(data?.preferences||DEFAULT_PREFS));
+}
+async function saveBusinessPreferences(user){
+  const preferences=collectPrefs();
+  const {error}=await supabaseClient.from('business_preferences').upsert({user_id:user.id,preferences,updated_at:new Date().toISOString()},{onConflict:'user_id'});
+  if(error)throw error;currentBusinessPreferences=preferences;
+}
+function applyPreferencesToNewProject(){
+  const p=currentBusinessPreferences; const days=[['monday',1],['tuesday',2],['wednesday',3],['thursday',4],['friday',5],['saturday',6],['sunday',0]];
+  const first=days.find(([k])=>p.weekly_schedule[k]?.enabled)||days[0];
+  if(els.start)els.start.value=p.weekly_schedule[first[0]].start;if(els.service)els.service.value=p.default_service_minutes;
+  if(els.firstDay)els.firstDay.value=first[1];if(els.days)els.days.value=days.filter(([k])=>p.weekly_schedule[k]?.enabled).length||1;
+}
+prefRegion.onchange=()=>{const intl=prefRegion.value!=='US';prefDistanceUnit.value=intl?'kilometers':'miles';prefTimeFormat.value=intl?'24h':'12h';prefDateFormat.value=intl?'DD/MM/YYYY':'MM/DD/YYYY';prefTemperatureUnit.value=intl?'C':'F';renderSchedule(collectSchedule())};
+prefTimeFormat.onchange=()=>{const s=collectSchedule(),a=prefLunchStart.value,b=prefLunchEnd.value;renderSchedule(s);prefLunchStart.innerHTML=timeOptions(a);prefLunchEnd.innerHTML=timeOptions(b)};
+resetPreferencesBtn.onclick=()=>{fillPrefs(DEFAULT_PREFS);profileMessage.textContent='Defaults restored. Save to keep them.'};
+fillPrefs(DEFAULT_PREFS);
+
+async function loadProfile(user){
+  const {data,error}=await supabaseClient.from('profiles').select('*').eq('id',user.id).maybeSingle();
+  if(error){console.error(error);return null;}
+  return data;
+}
+async function openDashboard(user){
+  if(recoveryMode){
+    showResetPasswordScreen();
+    return;
+  }
+  // Display the dashboard immediately after authentication.
+  showDashboardScreen(user,null);
+
+  try{
+    const profile=await loadProfile(user);
+    await loadBusinessPreferences(user);
+    showDashboardScreen(user,profile);
+  }catch(error){
+    console.error('Profile load failed:',error);
+  }
+
+  try{
+    await loadDashboardProjects();
+  }catch(error){
+    console.error('Projects load failed:',error);
+    dashboardProjects.innerHTML=`<div class="note">Could not load projects: ${esc(error?.message||'Unknown error')}</div>`;
+  }
+
+  try{
+    await loadPreferredAddresses();
+  }catch(error){
+    console.error('Preferred addresses load failed:',error);
+    preferredAddressList.innerHTML=`<div class="note">Could not load preferred addresses: ${esc(error?.message||'Unknown error')}</div>`;
+  }
+}
+async function loadDashboardProjects(){
+  const {data,error}=await supabaseClient.from('route_projects').select('id,project_name,updated_at').eq('user_id',await currentUserId()).order('updated_at',{ascending:false});
+  if(error){dashboardProjects.innerHTML=`<div class="note">${esc(error.message)}</div>`;return;}
+  if(!data.length){dashboardProjects.innerHTML='<div class="note">No saved routes yet. Create your first route.</div>';return;}
+  dashboardProjects.innerHTML=data.map(p=>`<div class="project-card">
+    <h4>${esc(p.project_name)}</h4>
+    <small>Updated ${new Date(p.updated_at).toLocaleString()}</small>
+    <div class="project-card-actions">
+      <button onclick="openDashboardProject('${p.id}')">Open</button>
+      <button class="red" onclick="deleteDashboardProject('${p.id}')">Delete</button>
+    </div>
+  </div>`).join('');
+}
+window.openDashboardProject=async id=>{
+  const {data,error}=await supabaseClient.from('route_projects').select('*').eq('id',id).eq('user_id',await currentUserId()).single();
+  if(error)return alert(error.message);
+  els.projectName.value=data.project_name;
+  await restoreProject(data.project_data);
+  showAppScreen((await supabaseClient.auth.getSession()).data.session.user);
+};
+window.deleteDashboardProject=async id=>{
+  if(!confirm('Delete this saved project?'))return;
+  const {error}=await supabaseClient.from('route_projects').delete().eq('id',id).eq('user_id',await currentUserId());
+  if(error)return alert(error.message);
+  await loadDashboardProjects();
+};
+newRouteBtn.onclick=async()=>{
+  await clearMapForLoad();
+  els.projectName.value='';
+  applyPreferencesToNewProject();
+  const {data}=await supabaseClient.auth.getSession();
+  if(data.session?.user)showAppScreen(data.session.user);
+};
+backDashboardBtn.onclick=async()=>{
+  const {data}=await supabaseClient.auth.getSession();
+  if(data.session?.user){
+    await openDashboard(data.session.user);
+    showDashboardTab('new');
+  }
+};
+saveProfileBtn.onclick=async()=>{
+  const {data}=await supabaseClient.auth.getSession();const user=data.session?.user;if(!user)return;
+  saveProfileBtn.disabled=true;saveProfileBtn.textContent='Saving...';profileMessage.textContent='Saving...';
+  try{
+    const {error}=await supabaseClient.from('profiles').upsert({id:user.id,first_name:profileFirstName.value.trim(),last_name:profileLastName.value.trim(),business_name:profileBusinessName.value.trim(),updated_at:new Date().toISOString()});
+    if(error)throw error;await saveBusinessPreferences(user);profileMessage.textContent='Preferences saved successfully.';
+  }catch(e){profileMessage.textContent=e?.message||'Could not save preferences.'}
+  finally{saveProfileBtn.disabled=false;saveProfileBtn.textContent='Save Preferences'}
+};
+dashboardLogoutBtn.onclick=async()=>{await supabaseClient.auth.signOut();showLoginScreen();};
+
+
+googleLoginBtn.onclick=async()=>{
+  googleLoginBtn.disabled=true;
+  googleLoginBtn.textContent='Connecting to Google...';
+
+  try{
+    const {error}=await supabaseClient.auth.signInWithOAuth({
+      provider:'google',
+      options:{
+        redirectTo:'https://routeroush.com/app.html'
+      }
+    });
+
+    if(error){
+      showLoginMessage(error.message,true);
+      googleLoginBtn.disabled=false;
+      googleLoginBtn.innerHTML=`
+        <svg class="rr-google-logo" viewBox="0 0 24 24" aria-hidden="true">
+          <path fill="#4285F4" d="M21.6 12.23c0-.75-.07-1.47-.19-2.16H12v4.09h5.38a4.6 4.6 0 0 1-1.99 3.02v2.51h3.23c1.89-1.74 2.98-4.3 2.98-7.46z"/>
+          <path fill="#34A853" d="M12 22c2.7 0 4.96-.9 6.62-2.43l-3.23-2.51c-.9.6-2.04.95-3.39.95-2.61 0-4.82-1.76-5.61-4.13H3.06v2.59A10 10 0 0 0 12 22z"/>
+          <path fill="#FBBC05" d="M6.39 13.88A6.01 6.01 0 0 1 6.08 12c0-.65.11-1.28.31-1.88V7.53H3.06A10 10 0 0 0 2 12c0 1.61.38 3.13 1.06 4.47l3.33-2.59z"/>
+          <path fill="#EA4335" d="M12 5.99c1.47 0 2.79.51 3.83 1.5l2.87-2.87C16.95 2.99 14.7 2 12 2a10 10 0 0 0-8.94 5.53l3.33 2.59C7.18 7.75 9.39 5.99 12 5.99z"/>
+        </svg>
+        Continue with Google`;
+    }
+  }catch(error){
+    showLoginMessage(error?.message||'Could not start Google sign-in.',true);
+    googleLoginBtn.disabled=false;
+    googleLoginBtn.textContent='Continue with Google';
+  }
+};
+
+loginOnlyBtn.onclick=async()=>{
+  const email=loginEmail.value.trim();
+  const password=loginPassword.value;
+
+  if(!email || !password){
+    showLoginMessage('Enter your email and password.',true);
+    return;
+  }
+
+  loginOnlyBtn.disabled=true;
+  loginOnlyBtn.textContent='Logging in...';
+
+  try{
+    const {data,error}=await supabaseClient.auth.signInWithPassword({email,password});
+
+    if(error){
+      showLoginMessage(error.message,true);
+      return;
+    }
+
+    if(!data?.user){
+      showLoginMessage('Login completed, but no user account was returned. Please refresh and try again.',true);
+      return;
+    }
+
+    showLoginMessage('Login successful.');
+    showDashboardScreen(data.user,null);
+    await openDashboard(data.user);
+  }catch(error){
+    showLoginMessage(
+      `Could not connect to Supabase: ${error?.message || 'Unknown connection error'}`,
+      true
+    );
+  }finally{
+    loginOnlyBtn.disabled=false;
+    loginOnlyBtn.textContent='Log in';
+  }
+};
+
+signupOnlyBtn.onclick=async()=>{
+  const first=firstName.value.trim();
+  const last=lastName.value.trim();
+  const business=businessName.value.trim();
+  const email=signupEmail.value.trim();
+  const password=signupPassword.value;
+
+  if(!first || !last || !business){
+    showLoginMessage('Enter your first name, last name, and business name.',true);
+    return;
+  }
+
+  if(!email || password.length<8){
+    showLoginMessage('Enter a valid email and a password with at least 8 characters.',true);
+    return;
+  }
+
+  signupOnlyBtn.disabled=true;
+  signupOnlyBtn.textContent='Creating...';
+
+  try{
+    const {data,error}=await supabaseClient.auth.signUp({
+      email,
+      password,
+      options:{
+        emailRedirectTo:'https://routeroush.com/app.html',
+        data:{
+          first_name:first,
+          last_name:last,
+          business_name:business,
+          full_name:`${first} ${last}`
+        }
+      }
+    });
+
+    showLoginMessage(
+      error
+        ? error.message
+        : 'Account created. Check your email and confirm your account, then return here to log in.',
+      !!error
+    );
+  }catch(error){
+    showLoginMessage(
+      `Could not connect to Supabase: ${error?.message || 'Unknown connection error'}`,
+      true
+    );
+  }finally{
+    signupOnlyBtn.disabled=false;
+    signupOnlyBtn.textContent='Create account';
+  }
+};
+
+
+
+forgotPasswordBtn.onclick=async()=>{
+  const email=loginEmail.value.trim();
+
+  if(!email){
+    showLoginMessage('Enter your email address first, then click Forgot password.',true);
+    return;
+  }
+
+  forgotPasswordBtn.disabled=true;
+  forgotPasswordBtn.textContent='Sending reset email...';
+
+  try{
+    const {error}=await supabaseClient.auth.resetPasswordForEmail(email,{
+      redirectTo:'https://routeroush.com/reset-password.html'
+    });
+
+    showLoginMessage(
+      error
+        ? error.message
+        : 'Password reset email requested. Check your inbox and spam folder.',
+      !!error
+    );
+  }catch(error){
+    showLoginMessage(
+      `Could not request password reset: ${error?.message || 'Unknown error'}`,
+      true
+    );
+  }finally{
+    forgotPasswordBtn.disabled=false;
+    forgotPasswordBtn.textContent='Forgot password?';
+  }
+};
+
+saveNewPasswordBtn.onclick=async()=>{
+  const password=newPassword.value;
+  const confirmation=confirmNewPassword.value;
+
+  if(password.length<8){
+    showResetPasswordMessage('Password must be at least 8 characters.',true);
+    return;
+  }
+
+  if(password!==confirmation){
+    showResetPasswordMessage('The two passwords do not match.',true);
+    return;
+  }
+
+  saveNewPasswordBtn.disabled=true;
+  saveNewPasswordBtn.textContent='Updating...';
+
+  try{
+    const {error}=await supabaseClient.auth.updateUser({password});
+
+    if(error){
+      showResetPasswordMessage(error.message,true);
+      return;
+    }
+
+    showResetPasswordMessage('Password updated successfully.');
+    recoveryMode=false;
+    sessionStorage.removeItem('routeroush-password-recovery');
+    setTimeout(async()=>{
+      window.history.replaceState({},document.title,'/');
+      const {data}=await supabaseClient.auth.getSession();
+
+      if(data.session?.user){
+        await openDashboard(data.session.user);
+      }else{
+        showLoginScreen();
+      }
+    },1000);
+  }catch(error){
+    showResetPasswordMessage(
+      `Could not update password: ${error?.message || 'Unknown error'}`,
+      true
+    );
+  }finally{
+    saveNewPasswordBtn.disabled=false;
+    saveNewPasswordBtn.textContent='Update password';
+  }
+};
+
+resendConfirmationBtn.onclick=async()=>{
+  const email=signupEmail.value.trim();
+
+  if(!email){
+    showLoginMessage('Enter your signup email first.',true);
+    return;
+  }
+
+  resendConfirmationBtn.disabled=true;
+  resendConfirmationBtn.textContent='Sending...';
+
+  try{
+    const {error}=await supabaseClient.auth.resend({
+      type:'signup',
+      email,
+      options:{
+        emailRedirectTo:'https://routeroush.com/app.html'
+      }
+    });
+
+    showLoginMessage(
+      error ? error.message : 'Confirmation email sent again. Check your inbox and spam folder.',
+      !!error
+    );
+  }catch(error){
+    showLoginMessage(
+      `Could not send confirmation email: ${error?.message || 'Unknown error'}`,
+      true
+    );
+  }finally{
+    resendConfirmationBtn.disabled=false;
+    resendConfirmationBtn.textContent='Resend confirmation email';
+  }
+};
+
+loginPassword.addEventListener('keydown',event=>{
+  if(event.key==='Enter') loginOnlyBtn.click();
+});
+
+topLogoutBtn.onclick=async()=>{
+  await supabaseClient.auth.signOut();
+  showLoginScreen();
+  showLoginMessage('You are logged out.');
+};
+
+els.signupBtn.onclick=async()=>{
+  const email=els.authEmail.value.trim(),password=els.authPassword.value;
+  if(!email||password.length<8)return showAuthMessage('Enter a valid email and a password with at least 8 characters.',true);
+  const {error}=await supabaseClient.auth.signUp({
+    email,password,
+    options:{emailRedirectTo:'https://routeroush.com/app.html'}
+  });
+  showAuthMessage(error?error.message:'Account created. Check your email to confirm it.',!!error);
+};
+els.loginBtn.onclick=async()=>{
+  const {error}=await supabaseClient.auth.signInWithPassword({
+    email:els.authEmail.value.trim(),password:els.authPassword.value
+  });
+  showAuthMessage(error?error.message:'You are logged in.',!!error);
+  if(!error){await updateAuthState();await loadProjectList();}
+};
+els.logoutBtn.onclick=async()=>{
+  await supabaseClient.auth.signOut();
+  showAuthMessage('You are logged out.');
+  els.projectSelect.innerHTML='<option value="">No saved projects loaded</option>';
+  await updateAuthState();
+};
+function getProjectData(){
+  return {
+    depot:depot?{lat:depot.lat,lon:depot.lon,address:depot.address}:null,
+    stops:stops.map(s=>({id:s.id,lat:s.lat,lon:s.lon,address:s.address,serviceMinutes:s.serviceMinutes,earliest:s.earliest,latest:s.latest,requiredWeekday:s.requiredWeekday,priority:s.priority,contactName:s.contactName||'',contactEmail:s.contactEmail||''})),
+    settings:{days:els.days.value,perDay:els.perDay.value,weekday:els.weekday.value,start:els.start.value,service:els.service.value}
+  };
+}
+async function clearMapForLoad(){
+  stops.forEach(s=>map.removeLayer(s.marker));stops=[];
+  if(depotMarker){map.removeLayer(depotMarker);depotMarker=null;}
+  depot=null;invalidate();
+}
+async function restoreProject(projectData){
+  await clearMapForLoad();
+  const settings=projectData.settings||{};
+  if(settings.days)els.days.value=settings.days;
+  if(settings.perDay)els.perDay.value=settings.perDay;
+  if(settings.weekday!==undefined)els.weekday.value=settings.weekday;
+  if(settings.start)els.start.value=settings.start;
+  if(settings.service)els.service.value=settings.service;
+  if(projectData.depot){
+    const d=projectData.depot;depot={lat:d.lat,lon:d.lon,address:d.address};
+    depotMarker=L.marker([d.lat,d.lon],{icon:redIcon,draggable:true}).addTo(map).bindPopup(`<b>Start / return</b><br>${esc(d.address)}`);
+  }
+  for(const raw of (projectData.stops||[])){
+    const s={id:raw.id||String(Date.now()+Math.random()),lat:raw.lat,lon:raw.lon,address:raw.address,marker:null,serviceMinutes:raw.serviceMinutes??40,earliest:raw.earliest||'',latest:raw.latest||'',requiredWeekday:raw.requiredWeekday??'',priority:raw.priority||'normal',contactName:raw.contactName||'',contactEmail:raw.contactEmail||''};
+    s.marker=L.marker([s.lat,s.lon],{icon:blueIcon,draggable:true}).addTo(map);
+    stops.push(s);
+  }
+  renderPoints();updateCapacity();
+  const pts=[...(depot?[[depot.lat,depot.lon]]:[]),...stops.map(s=>[s.lat,s.lon])];
+  if(pts.length)map.fitBounds(pts,{padding:[25,25]});
+}
+els.saveProjectBtn.onclick=async()=>{
+  const user=await updateAuthState();
+  if(!user)return showProjectMessage('Log in before saving a project.',true);
+  const name=els.projectName.value.trim();
+  if(!name)return showProjectMessage('Enter a project name.',true);
+  if(!depot||!stops.length)return showProjectMessage('Add a starting point and at least one stop before saving.',true);
+  const selectedId=els.projectSelect.value;
+  const q=selectedId
+    ? supabaseClient.from('route_projects').update({project_name:name,project_data:getProjectData(),updated_at:new Date().toISOString()}).eq('id',selectedId)
+    : supabaseClient.from('route_projects').insert({user_id:user.id,project_name:name,project_data:getProjectData()});
+  const {error}=await q;
+  if(error)return showProjectMessage(error.message,true);
+  showProjectMessage(selectedId?'Project updated.':'Project saved.');
+  await loadProjectList();
+};
+async function loadProjectList(){
+  const user=await updateAuthState();
+  if(!user){els.projectSelect.innerHTML='<option value="">Log in to view projects</option>';return;}
+  const {data,error}=await supabaseClient.from('route_projects').select('id,project_name,updated_at').eq('user_id',await currentUserId()).order('updated_at',{ascending:false});
+  if(error)return showProjectMessage(error.message,true);
+  els.projectSelect.innerHTML=data.length
+    ? '<option value="">Create a new project</option>'+data.map(p=>`<option value="${esc(p.id)}">${esc(p.project_name)}</option>`).join('')
+    : '<option value="">No saved projects</option>';
+}
+els.refreshProjectsBtn.onclick=loadProjectList;
+els.loadProjectBtn.onclick=async()=>{
+  const id=els.projectSelect.value;
+  if(!id)return showProjectMessage('Select a saved project first.',true);
+  const {data,error}=await supabaseClient.from('route_projects').select('*').eq('id',id).eq('user_id',await currentUserId()).single();
+  if(error)return showProjectMessage(error.message,true);
+  els.projectName.value=data.project_name;await restoreProject(data.project_data);showProjectMessage('Project loaded.');
+};
+els.deleteProjectBtn.onclick=async()=>{
+  const id=els.projectSelect.value;
+  if(!id)return showProjectMessage('Select a saved project first.',true);
+  if(!confirm('Delete this saved project?'))return;
+  const {error}=await supabaseClient.from('route_projects').delete().eq('id',id).eq('user_id',await currentUserId());
+  if(error)return showProjectMessage(error.message,true);
+  els.projectName.value='';showProjectMessage('Project deleted.');await loadProjectList();
+};
+els.projectSelect.onchange=()=>{
+  if(els.projectSelect.value)els.projectName.value=els.projectSelect.options[els.projectSelect.selectedIndex].textContent;
+};
+
+supabaseClient.auth.onAuthStateChange(async(event,session)=>{
+  const user=session?.user || null;
+  if(user){
+    await openDashboard(user);
+    await updateAuthState();
+  }else{
+    showLoginScreen();
+  }
+});
+
+
+
+renderPoints();
+
+(async function initializeApp(){
+  const {data}=await supabaseClient.auth.getSession();
+  const user=data?.session?.user || null;
+
+  if(user){
+    await openDashboard(user);
+    await updateAuthState();
+    await loadProjectList();
+  }else{
+    showLoginScreen();
+  }
+})();
+
+</script>
+</section>
+
+</div>
+
+</body>
+</html>

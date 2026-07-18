@@ -317,6 +317,8 @@ html{overflow-x:clip}
 .photo-stop.noimg .stop-bg{display:none}
 .photo-stop.noimg::after{background:linear-gradient(160deg,rgba(56,189,248,.05),transparent 50%,rgba(139,92,246,.06))}
 .photo-stop .card,.photo-stop .step{background:rgba(13,24,41,.94)}
+.photo-stop .price-card{background:rgba(13,24,41,.96)}
+.photo-stop details{background:rgba(13,24,41,.95)}
 @media(max-width:760px){.photo-stop .stop-inner{padding:52px 18px 52px 48px}.photo-stop .stop-pin{left:6px;top:56px}}
 
 /* ---------- Photo strips ---------- */
@@ -521,7 +523,9 @@ footer{border-top:1px solid var(--line);margin-top:70px;padding:34px 0 44px}
   </section>
 
   <!-- STOP 05 -->
-  <section class="stop" id="pricing">
+  <section class="stop photo-stop" id="pricing">
+    <img class="stop-bg" src="img/road-light-trails.jpg" alt="" loading="lazy" onerror="this.closest('.photo-stop').classList.add('noimg')">
+    <div class="stop-inner">
     <div class="stop-pin" aria-hidden="true"></div>
     <div class="stop-kicker">Stop 05 · Pricing</div>
     <h2 class="stop-title">Simple pricing. Start free.</h2>
@@ -557,10 +561,13 @@ footer{border-top:1px solid var(--line);margin-top:70px;padding:34px 0 44px}
         <a class="btn" href="app.html">Get started</a>
       </div>
     </div>
+    </div>
   </section>
 
   <!-- STOP 06 -->
-  <section class="stop" id="faq">
+  <section class="stop photo-stop" id="faq">
+    <img class="stop-bg" src="img/road-quiet-street.jpg" alt="" loading="lazy" onerror="this.closest('.photo-stop').classList.add('noimg')">
+    <div class="stop-inner">
     <div class="stop-pin" aria-hidden="true"></div>
     <div class="stop-kicker">Stop 06 · FAQ</div>
     <h2 class="stop-title">Questions, answered</h2>
@@ -589,6 +596,7 @@ footer{border-top:1px solid var(--line);margin-top:70px;padding:34px 0 44px}
         <summary>Can I cancel anytime?</summary>
         <p>Yes. No contracts, no lock-in. Downgrade to free whenever you like and keep your account.</p>
       </details>
+    </div>
     </div>
   </section>
 

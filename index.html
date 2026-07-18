@@ -133,12 +133,10 @@ h1 .grad{
 
 /* ---------- Route track (page spine) ---------- */
 .route-track{position:relative;padding:30px 0 10px}
-.route-track::before{
-  content:'';position:absolute;left:29px;top:0;bottom:0;width:0;
-  border-left:2px dashed var(--line-strong);
-}
-.stop{position:relative;padding:54px 0 54px 78px}
-.stop-pin{
+.route-track::before{display:none}
+.stop{position:relative;padding:54px 0}
+.stop-pin{display:none}
+.stop-pin-unused{
   position:absolute;left:14px;top:60px;width:32px;height:32px;border-radius:50% 50% 50% 4px;
   transform:rotate(-45deg);
   background:linear-gradient(135deg,var(--cyan),var(--violet));
@@ -151,9 +149,8 @@ h1 .grad{
 h2.stop-title{font-family:var(--display);font-weight:700;font-size:clamp(26px,3.2vw,36px);letter-spacing:-.02em;margin:0 0 12px}
 .stop p.stop-lede{color:var(--muted);max-width:62ch;margin:0 0 28px}
 @media(max-width:760px){
-  .route-track::before{left:15px}
-  .stop{padding-left:48px}
-  .stop-pin{left:0;width:28px;height:28px;top:56px}
+  .route-track::before{display:none}
+  .stop{padding-left:0}
 }
 
 /* ---------- Cards / grids ---------- */
@@ -299,7 +296,7 @@ html{overflow-x:clip}
 }
 .photo-stop .stop-inner{
   position:relative;z-index:2;max-width:1120px;margin:0 auto;
-  padding:64px 22px 64px 78px;
+  padding:64px 22px;
 }
 .photo-stop .stop-pin{top:70px}
 .photo-stop .stop-bg{
@@ -319,7 +316,7 @@ html{overflow-x:clip}
 .photo-stop .card,.photo-stop .step{background:rgba(13,24,41,.94)}
 .photo-stop .price-card{background:rgba(13,24,41,.96)}
 .photo-stop details{background:rgba(13,24,41,.95)}
-@media(max-width:760px){.photo-stop .stop-inner{padding:52px 18px 52px 48px}.photo-stop .stop-pin{left:6px;top:56px}}
+@media(max-width:760px){.photo-stop .stop-inner{padding:48px 18px}}
 
 /* ---------- Photo strips ---------- */
 .photo-strip{

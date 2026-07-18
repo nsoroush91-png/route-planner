@@ -1204,6 +1204,13 @@ body{
   .rr-login-panel{padding:24px 18px}
 }
 
+/* ---- Bulk import ---- */
+.bulk{background:#0d1a2e;border:1px solid #24405f;border-radius:12px;padding:0 12px;margin:12px 0}
+.bulk summary{cursor:pointer;font-weight:700;font-size:13px;padding:11px 0;color:#bfe3fb;list-style:none}
+.bulk summary::before{content:'⇪ '}
+.bulk textarea{width:100%;min-height:110px;background:#0a1626;color:#edf4ff;border:1px solid #2a4059;border-radius:10px;padding:10px;font-size:13px;font-family:inherit;box-sizing:border-box}
+.bulk .hint{font-size:11.5px;color:#8ba0b9;margin:4px 0 8px;line-height:1.45}
+.bulk .row{margin:10px 0 12px}
 </style>
 </head>
 <body>
@@ -1706,6 +1713,19 @@ body{
   <div class="row"><button id="searchBtn">Search</button><button id="addSearchBtn" class="green" disabled>Add result</button></div>
   <div id="searchStatus" class="note" style="display:none"></div>
 
+  <details class="bulk" id="bulkPanel">
+    <summary>Bulk import stops (paste list or CSV)</summary>
+    <p class="hint">Paste <b>one address per line</b>, or upload a CSV file with an <b>address</b> column (optional columns: name, email, minutes).</p>
+    <textarea id="bulkText" placeholder="123 E Main St, Mesa, AZ 85201&#10;2201 N Central Ave, Phoenix, AZ 85004&#10;..."></textarea>
+    <input type="file" id="bulkFile" accept=".csv,text/csv,text/plain" style="display:none">
+    <div class="row">
+      <button id="bulkFileBtn" type="button">Upload CSV</button>
+      <button id="bulkRunBtn" type="button" class="green">Import stops</button>
+    </div>
+    <div id="bulkProgress" class="note" style="display:none"></div>
+    <div id="bulkErrors" class="note" style="display:none"></div>
+  </details>
+
   <label>Number of days</label>
   <input id="daysInput" type="number" min="1" max="14" value="2">
 
@@ -1811,8 +1831,8 @@ const $ = id => document.getElementById(id);
                 production (see /table API docs).
    ============================================================ */
 const CONFIG = {
-  MAPTILER_API_KEY: 'yc8e3vFdsWSBsutJcz7t',          // e.g. 'AbCdEf123...'
-  GEOAPIFY_API_KEY: '437fc42a3e5343529999c7d2c2ab07c0',          // e.g. 'a1b2c3d4...'
+  MAPTILER_API_KEY: '',          // e.g. 'AbCdEf123...'
+  GEOAPIFY_API_KEY: '',          // e.g. 'a1b2c3d4...'
   OSRM_URL: 'https://router.project-osrm.org'
 };
 
@@ -2103,6 +2123,128 @@ async function addPoint(lat,lon,address){
   invalidate();renderPoints();updateCapacity();
 }
 map.on('click',e=>addPoint(e.latlng.lat,e.latlng.lng));
+
+/* ================= Bulk import ================= */
+function parseCsv(text){
+  const rows=[];let row=[],field='',q=false;
+  for(let i=0;i<text.length;i++){
+    const c=text[i];
+    if(q){
+      if(c==='"'){ if(text[i+1]==='"'){field+='"';i++;} else q=false; }
+      else field+=c;
+    }else if(c==='"')q=true;
+    else if(c===','){row.push(field);field='';}
+    else if(c==='\n'||c==='\r'){
+      if(c==='\r'&&text[i+1]==='\n')i++;
+      row.push(field);field='';
+      if(row.some(f=>f.trim()!==''))rows.push(row);
+      row=[];
+    }else field+=c;
+  }
+  row.push(field);
+  if(row.some(f=>f.trim()!==''))rows.push(row);
+  return rows;
+}
+
+function rowsToEntries(rows){
+  if(!rows.length)return [];
+  const header=rows[0].map(h=>h.trim().toLowerCase());
+  const ai=header.findIndex(h=>h.includes('address'));
+  if(ai!==-1){ // header row present
+    const ni=header.findIndex(h=>h.includes('name'));
+    const ei=header.findIndex(h=>h.includes('email'));
+    const mi=header.findIndex(h=>h.includes('minute')||h.includes('service')||h.includes('duration'));
+    return rows.slice(1).map(r=>({
+      address:(r[ai]||'').trim(),
+      name:ni!==-1?(r[ni]||'').trim():'',
+      email:ei!==-1?(r[ei]||'').trim():'',
+      minutes:mi!==-1?Number(r[mi])||null:null
+    })).filter(e=>e.address);
+  }
+  // no header: whole row is one address (addresses themselves contain commas)
+  return rows.map(r=>({address:r.join(',').trim(),name:'',email:'',minutes:null})).filter(e=>e.address);
+}
+
+function bulkMakeStop(g,entry){
+  const s={
+    id:crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random()),
+    lat:g.lat,lon:g.lon,address:g.display,marker:null,
+    serviceMinutes:entry.minutes||Number(els.service.value)||40,
+    earliest:'',latest:'',requiredWeekday:'',priority:'normal',
+    contactName:entry.name||'',contactEmail:entry.email||''
+  };
+  s.marker=L.marker([s.lat,s.lon],{icon:blueIcon,draggable:true}).addTo(map);
+  s.marker.on('dragend',async e=>{const p=e.target.getLatLng();s.lat=p.lat;s.lon=p.lng;s.address=await reverse(p.lat,p.lng);invalidate();renderPoints();});
+  stops.push(s);
+}
+
+const bulkText=$('bulkText'),bulkFile=$('bulkFile'),bulkFileBtn=$('bulkFileBtn'),
+      bulkRunBtn=$('bulkRunBtn'),bulkProgress=$('bulkProgress'),bulkErrors=$('bulkErrors');
+let bulkFileRows=null;
+
+bulkFileBtn.onclick=()=>bulkFile.click();
+bulkFile.onchange=()=>{
+  const f=bulkFile.files[0];
+  if(!f)return;
+  const reader=new FileReader();
+  reader.onload=()=>{
+    bulkFileRows=parseCsv(String(reader.result));
+    bulkProgress.style.display='block';
+    bulkProgress.textContent=`File "${f.name}" loaded (${bulkFileRows.length} rows). Click Import stops.`;
+  };
+  reader.onerror=()=>{bulkProgress.style.display='block';bulkProgress.textContent='Could not read the file.';};
+  reader.readAsText(f);
+};
+
+bulkRunBtn.onclick=async()=>{
+  let entries;
+  if(bulkFileRows){
+    entries=rowsToEntries(bulkFileRows);
+  }else{
+    const lines=bulkText.value.split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
+    entries=lines.map(l=>({address:l,name:'',email:'',minutes:null}));
+  }
+  if(!entries.length){
+    bulkProgress.style.display='block';
+    bulkProgress.textContent='Paste addresses or upload a CSV first.';
+    return;
+  }
+  if(entries.length>200){
+    bulkProgress.style.display='block';
+    bulkProgress.textContent=`That's ${entries.length} addresses — the limit per import is 200. Split the list and run twice.`;
+    return;
+  }
+  bulkRunBtn.disabled=true;bulkFileBtn.disabled=true;
+  bulkErrors.style.display='none';bulkErrors.textContent='';
+  bulkProgress.style.display='block';
+  const delay=CONFIG.GEOAPIFY_API_KEY?250:1100; // respect free-tier rate limits
+  const failed=[];
+  let ok=0;
+  for(let i=0;i<entries.length;i++){
+    bulkProgress.textContent=`Locating address ${i+1} of ${entries.length}… (${ok} added${failed.length?`, ${failed.length} failed`:''})`;
+    try{
+      const g=await geocodeSearch(entries[i].address);
+      if(g){bulkMakeStop(g,entries[i]);ok++;renderPoints();}
+      else failed.push(entries[i].address);
+    }catch(err){
+      failed.push(entries[i].address);
+    }
+    if(i<entries.length-1)await new Promise(r=>setTimeout(r,delay));
+  }
+  invalidate();renderPoints();updateCapacity();
+  const pts=[...(depot?[[depot.lat,depot.lon]]:[]),...stops.map(s=>[s.lat,s.lon])];
+  if(pts.length)map.fitBounds(pts,{padding:[25,25]});
+  bulkProgress.textContent=`Import finished: ${ok} stop${ok===1?'':'s'} added${failed.length?`, ${failed.length} address${failed.length===1?'':'es'} not found`:''}.`;
+  if(failed.length){
+    bulkErrors.style.display='block';
+    bulkErrors.textContent='Not found (left in the box below — fix and re-import): '+failed.join(' | ');
+    bulkText.value=failed.join('\n');
+  }else{
+    bulkText.value='';
+  }
+  bulkFileRows=null;bulkFile.value='';
+  bulkRunBtn.disabled=false;bulkFileBtn.disabled=false;
+};
 
 els.searchBtn.onclick=async()=>{
   const q=els.searchText.value.trim(); if(!q)return;
@@ -3449,14 +3591,25 @@ els.saveProjectBtn.onclick=async()=>{
   const name=els.projectName.value.trim();
   if(!name)return showProjectMessage('Enter a project name.',true);
   if(!depot||!stops.length)return showProjectMessage('Add a starting point and at least one stop before saving.',true);
-  const selectedId=els.projectSelect.value;
-  const q=selectedId
-    ? supabaseClient.from('route_projects').update({project_name:name,project_data:getProjectData(),updated_at:new Date().toISOString()}).eq('id',selectedId)
-    : supabaseClient.from('route_projects').insert({user_id:user.id,project_name:name,project_data:getProjectData()});
-  const {error}=await q;
-  if(error)return showProjectMessage(error.message,true);
-  showProjectMessage(selectedId?'Project updated.':'Project saved.');
-  await loadProjectList();
+  els.saveProjectBtn.disabled=true;
+  try{
+    let targetId=els.projectSelect.value;
+    if(!targetId){
+      // reuse an existing project with the same name instead of creating a duplicate
+      const {data:existing}=await supabaseClient.from('route_projects')
+        .select('id').eq('user_id',user.id).eq('project_name',name).limit(1);
+      if(existing&&existing.length)targetId=existing[0].id;
+    }
+    const q=targetId
+      ? supabaseClient.from('route_projects').update({project_name:name,project_data:getProjectData(),updated_at:new Date().toISOString()}).eq('id',targetId).eq('user_id',user.id)
+      : supabaseClient.from('route_projects').insert({user_id:user.id,project_name:name,project_data:getProjectData()});
+    const {error}=await q;
+    if(error)return showProjectMessage(error.message,true);
+    showProjectMessage(targetId?'Project updated.':'Project saved.');
+    await loadProjectList();
+  }finally{
+    els.saveProjectBtn.disabled=false;
+  }
 };
 async function loadProjectList(){
   const user=await updateAuthState();

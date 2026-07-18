@@ -290,6 +290,27 @@ h1 .grad{background-size:200% 100%;animation:gradSlide 7s ease-in-out infinite a
 .calc-result{transition:box-shadow .35s ease}
 .calc-result.tick{box-shadow:0 0 0 3px rgba(34,211,166,.28)}
 
+/* ---------- Faded photo section backgrounds ---------- */
+.photo-stop{
+  border-radius:22px;border:1px solid var(--line);overflow:hidden;
+  margin:26px 0;padding-right:40px;
+}
+.photo-stop .stop-bg{
+  position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;
+  filter:saturate(.65) brightness(.8);
+}
+.photo-stop::after{
+  content:'';position:absolute;inset:0;z-index:1;pointer-events:none;
+  background:
+    radial-gradient(120% 90% at 50% 50%,transparent 0%,rgba(6,16,29,.55) 78%,rgba(6,16,29,.92) 100%),
+    linear-gradient(180deg,rgba(6,16,29,.86),rgba(6,16,29,.68) 45%,rgba(6,16,29,.88));
+}
+.photo-stop>*{position:relative;z-index:2}
+.photo-stop.noimg .stop-bg{display:none}
+.photo-stop.noimg::after{background:linear-gradient(160deg,rgba(56,189,248,.05),transparent 50%,rgba(139,92,246,.06))}
+.photo-stop .card,.photo-stop .step{background:rgba(13,24,41,.94)}
+@media(max-width:760px){.photo-stop{padding-right:18px;padding-left:48px}}
+
 /* ---------- Photo strips ---------- */
 .photo-strip{
   position:relative;border-radius:18px;overflow:hidden;border:1px solid var(--line);
@@ -414,7 +435,8 @@ footer{border-top:1px solid var(--line);margin-top:70px;padding:34px 0 44px}
 <main class="wrap route-track">
 
   <!-- STOP 01 -->
-  <section class="stop" id="problem">
+  <section class="stop photo-stop" id="problem">
+    <img class="stop-bg" src="img/road-city-traffic.jpg" alt="" loading="lazy" onerror="this.closest('.photo-stop').classList.add('noimg')">
     <div class="stop-pin" aria-hidden="true"></div>
     <div class="stop-kicker">Stop 01 · The problem</div>
     <h2 class="stop-title">Your schedule shouldn't live on a whiteboard</h2>
@@ -424,14 +446,11 @@ footer{border-top:1px solid var(--line);margin-top:70px;padding:34px 0 44px}
       <div class="card"><div class="ic">🕐</div><h3>Guessed ETAs</h3><p>"Sometime between 9 and 12" frustrates customers and fills your day with where-are-you calls.</p></div>
       <div class="card"><div class="ic">📆</div><h3>Overloaded days</h3><p>Monday has 14 stops, Thursday has 4 — because nobody's balancing the week.</p></div>
     </div>
-    <figure class="photo-strip" style="margin-left:0;margin-right:0">
-      <img src="img/road-city-traffic.jpg" alt="Congested city street in the rain — the daily reality of unplanned routes" loading="lazy" onerror="this.closest('.photo-strip').classList.add('noimg')">
-      <figcaption class="strip-tag">08:14 AM · Stuck between job 2 and job 3</figcaption>
-    </figure>
   </section>
 
   <!-- STOP 02 -->
-  <section class="stop" id="features">
+  <section class="stop photo-stop" id="features">
+    <img class="stop-bg" src="img/road-interchange-night.jpg" alt="" loading="lazy" onerror="this.closest('.photo-stop').classList.add('noimg')">
     <div class="stop-pin" aria-hidden="true"></div>
     <div class="stop-kicker">Stop 02 · What RouteRoush does</div>
     <h2 class="stop-title">One customer list in. One smart week out.</h2>
@@ -444,10 +463,6 @@ footer{border-top:1px solid var(--line);margin-top:70px;padding:34px 0 44px}
       <div class="card"><div class="ic">✉️</div><h3>Arrival notifications</h3><p>Send every customer their estimated arrival time before you roll — fewer calls, happier customers.</p></div>
       <div class="card"><div class="ic">💾</div><h3>Saved customers &amp; projects</h3><p>Keep your regulars and your route plans in one place. Reuse last week's plan in two clicks.</p></div>
     </div>
-    <figure class="photo-strip">
-      <img src="img/road-interchange-night.jpg" alt="Aerial view of a highway interchange at night with flowing light trails" loading="lazy" onerror="this.closest('.photo-strip').classList.add('noimg')">
-      <figcaption class="strip-tag">Every mile accounted for</figcaption>
-    </figure>
   </section>
 
   <!-- STOP 03 -->
@@ -472,7 +487,8 @@ footer{border-top:1px solid var(--line);margin-top:70px;padding:34px 0 44px}
   </section>
 
   <!-- STOP 04 -->
-  <section class="stop" id="who">
+  <section class="stop photo-stop" id="who">
+    <img class="stop-bg" src="img/road-neighborhood.jpg" alt="" loading="lazy" onerror="this.closest('.photo-stop').classList.add('noimg')">
     <div class="stop-pin" aria-hidden="true"></div>
     <div class="stop-kicker">Stop 04 · Who it's for</div>
     <h2 class="stop-title">Built for pros who visit customers every week</h2>
@@ -488,10 +504,6 @@ footer{border-top:1px solid var(--line);margin-top:70px;padding:34px 0 44px}
       <span class="chip">Mobile pet grooming</span>
       <span class="chip">Deliveries &amp; couriers</span>
     </div>
-    <figure class="photo-strip">
-      <img src="img/road-neighborhood.jpg" alt="Aerial view of a suburban neighborhood — a typical service territory" loading="lazy" onerror="this.closest('.photo-strip').classList.add('noimg')">
-      <figcaption class="strip-tag">Your service area, seen as a route</figcaption>
-    </figure>
   </section>
 
   <!-- STOP 05 -->

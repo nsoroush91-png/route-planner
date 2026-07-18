@@ -290,11 +290,18 @@ h1 .grad{background-size:200% 100%;animation:gradSlide 7s ease-in-out infinite a
 .calc-result{transition:box-shadow .35s ease}
 .calc-result.tick{box-shadow:0 0 0 3px rgba(34,211,166,.28)}
 
-/* ---------- Faded photo section backgrounds ---------- */
+/* ---------- Full-bleed faded photo sections ---------- */
+html{overflow-x:clip}
 .photo-stop{
-  border-radius:22px;border:1px solid var(--line);overflow:hidden;
-  margin:26px 0;padding-right:40px;
+  width:100vw;margin:30px calc(50% - 50vw);
+  border-top:1px solid var(--line);border-bottom:1px solid var(--line);
+  overflow:hidden;padding:0;
 }
+.photo-stop .stop-inner{
+  position:relative;z-index:2;max-width:1120px;margin:0 auto;
+  padding:64px 22px 64px 78px;
+}
+.photo-stop .stop-pin{top:70px}
 .photo-stop .stop-bg{
   position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;
   filter:saturate(.65) brightness(.8);
@@ -306,10 +313,11 @@ h1 .grad{background-size:200% 100%;animation:gradSlide 7s ease-in-out infinite a
     linear-gradient(180deg,rgba(6,16,29,.86),rgba(6,16,29,.68) 45%,rgba(6,16,29,.88));
 }
 .photo-stop>*{position:relative;z-index:2}
+.photo-stop .stop-inner>*{position:relative}
 .photo-stop.noimg .stop-bg{display:none}
 .photo-stop.noimg::after{background:linear-gradient(160deg,rgba(56,189,248,.05),transparent 50%,rgba(139,92,246,.06))}
 .photo-stop .card,.photo-stop .step{background:rgba(13,24,41,.94)}
-@media(max-width:760px){.photo-stop{padding-right:18px;padding-left:48px}}
+@media(max-width:760px){.photo-stop .stop-inner{padding:52px 18px 52px 48px}.photo-stop .stop-pin{left:6px;top:56px}}
 
 /* ---------- Photo strips ---------- */
 .photo-strip{
@@ -437,6 +445,7 @@ footer{border-top:1px solid var(--line);margin-top:70px;padding:34px 0 44px}
   <!-- STOP 01 -->
   <section class="stop photo-stop" id="problem">
     <img class="stop-bg" src="img/road-city-traffic.jpg" alt="" loading="lazy" onerror="this.closest('.photo-stop').classList.add('noimg')">
+    <div class="stop-inner">
     <div class="stop-pin" aria-hidden="true"></div>
     <div class="stop-kicker">Stop 01 · The problem</div>
     <h2 class="stop-title">Your schedule shouldn't live on a whiteboard</h2>
@@ -446,11 +455,13 @@ footer{border-top:1px solid var(--line);margin-top:70px;padding:34px 0 44px}
       <div class="card"><div class="ic">🕐</div><h3>Guessed ETAs</h3><p>"Sometime between 9 and 12" frustrates customers and fills your day with where-are-you calls.</p></div>
       <div class="card"><div class="ic">📆</div><h3>Overloaded days</h3><p>Monday has 14 stops, Thursday has 4 — because nobody's balancing the week.</p></div>
     </div>
+    </div>
   </section>
 
   <!-- STOP 02 -->
   <section class="stop photo-stop" id="features">
     <img class="stop-bg" src="img/road-interchange-night.jpg" alt="" loading="lazy" onerror="this.closest('.photo-stop').classList.add('noimg')">
+    <div class="stop-inner">
     <div class="stop-pin" aria-hidden="true"></div>
     <div class="stop-kicker">Stop 02 · What RouteRoush does</div>
     <h2 class="stop-title">One customer list in. One smart week out.</h2>
@@ -462,6 +473,7 @@ footer{border-top:1px solid var(--line);margin-top:70px;padding:34px 0 44px}
       <div class="card"><div class="ic">🚩</div><h3>Priorities</h3><p>Critical customers get scheduled first. Flexible ones fill in around them.</p></div>
       <div class="card"><div class="ic">✉️</div><h3>Arrival notifications</h3><p>Send every customer their estimated arrival time before you roll — fewer calls, happier customers.</p></div>
       <div class="card"><div class="ic">💾</div><h3>Saved customers &amp; projects</h3><p>Keep your regulars and your route plans in one place. Reuse last week's plan in two clicks.</p></div>
+    </div>
     </div>
   </section>
 
@@ -489,6 +501,7 @@ footer{border-top:1px solid var(--line);margin-top:70px;padding:34px 0 44px}
   <!-- STOP 04 -->
   <section class="stop photo-stop" id="who">
     <img class="stop-bg" src="img/road-neighborhood.jpg" alt="" loading="lazy" onerror="this.closest('.photo-stop').classList.add('noimg')">
+    <div class="stop-inner">
     <div class="stop-pin" aria-hidden="true"></div>
     <div class="stop-kicker">Stop 04 · Who it's for</div>
     <h2 class="stop-title">Built for pros who visit customers every week</h2>
@@ -503,6 +516,7 @@ footer{border-top:1px solid var(--line);margin-top:70px;padding:34px 0 44px}
       <span class="chip">Property inspections</span>
       <span class="chip">Mobile pet grooming</span>
       <span class="chip">Deliveries &amp; couriers</span>
+    </div>
     </div>
   </section>
 

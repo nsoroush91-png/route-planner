@@ -1462,7 +1462,7 @@ body{
       <div class="card dashboard-card">
         <h2>Your Projects</h2>
         <p>Create a new route or continue working on a saved project.</p>
-        <button id="newRouteBtn" class="green">+ Create New Route</button>
+        <button id="newRouteBtn2" class="green">+ Create New Route</button>
         <div id="dashboardProjects" class="project-cards" style="margin-top:16px">
           <div class="note">Loading saved projects…</div>
         </div>
@@ -1588,6 +1588,15 @@ body{
       <div><label>Phone</label><input id="prefBusinessPhone" type="tel"></div>
       <div><label>Website</label><input id="prefBusinessWebsite" type="url"></div>
     </div>
+  </div>
+
+  <div class="pref-card">
+    <h3>🏠 Default Starting Point</h3>
+    <p class="note" style="display:block">Where your routes begin and end — your shop, office, or home. Applied automatically to every new project (you can always change it inside a project with "Set starting point").</p>
+    <label>Address</label>
+    <input id="prefDepotAddress" placeholder="e.g. 1200 E Broadway Rd, Phoenix, AZ">
+    <div class="row" style="margin-top:10px"><button id="prefDepotVerifyBtn" type="button">Verify location</button></div>
+    <div id="prefDepotStatus" class="note" style="display:none"></div>
   </div>
 
   <div class="pref-card">
@@ -1737,6 +1746,7 @@ body{
     <button id="modeDepot">Set starting point</button>
     <button id="modeStop" class="active">Add stops</button>
   </div>
+  <div class="row"><button id="useDefaultDepotBtn" type="button" class="secondary">🏠 Use default starting point</button></div>
 
   <label>Search address</label>
   <input id="searchText" placeholder="Phoenix Zoo, Phoenix, AZ">
@@ -3118,6 +3128,56 @@ navPreferredAddresses.onclick=async()=>{
 };
 navProfile.onclick=()=>showDashboardTab('profile');
 navImportCsv.onclick=()=>showDashboardTab('csv');
+
+/* ============ Default starting point ============ */
+const prefDepotAddress=$('prefDepotAddress'),prefDepotVerifyBtn=$('prefDepotVerifyBtn'),prefDepotStatus=$('prefDepotStatus');
+let prefDepotGeo=null;
+
+async function ensureDepotGeo(){
+  const text=prefDepotAddress.value.trim();
+  if(!text){prefDepotGeo=null;return;}
+  if(prefDepotGeo&&prefDepotGeo.address===text)return;
+  const g=await geocodeSearch(text);
+  if(!g)throw new Error('Default starting point: address could not be found on the map. Check it and try again.');
+  prefDepotGeo={address:g.display,lat:g.lat,lon:g.lon};
+  prefDepotAddress.value=g.display;
+}
+
+prefDepotVerifyBtn.onclick=async()=>{
+  prefDepotVerifyBtn.disabled=true;
+  prefDepotStatus.style.display='block';
+  prefDepotStatus.style.color='';
+  prefDepotStatus.textContent='Locating…';
+  try{
+    prefDepotGeo=null; // force a fresh lookup of whatever is typed
+    await ensureDepotGeo();
+    prefDepotStatus.textContent=prefDepotGeo?'✓ Location found. Click "Save All Preferences" to keep it.':'Cleared — save preferences to remove the default.';
+  }catch(err){
+    prefDepotStatus.style.color='#fda4af';
+    prefDepotStatus.textContent=err?.message||'Could not locate that address.';
+  }finally{
+    prefDepotVerifyBtn.disabled=false;
+  }
+};
+
+function applyDefaultDepot(announce=false){
+  const d=currentBusinessPreferences?.default_depot;
+  if(!d||d.lat==null){
+    if(announce)alert('No default starting point saved yet. Add one in Profile → Default Starting Point.');
+    return false;
+  }
+  if(depotMarker)map.removeLayer(depotMarker);
+  depot={lat:d.lat,lon:d.lon,address:d.address};
+  depotMarker=L.marker([d.lat,d.lon],{icon:redIcon,draggable:true}).addTo(map).bindPopup(`<b>Start / return</b><br>${esc(d.address)}`);
+  depotMarker.on('dragend',async e=>{const p=e.target.getLatLng();depot.lat=p.lat;depot.lon=p.lng;depot.address=await reverse(p.lat,p.lng);invalidate();renderPoints();});
+  map.setView([d.lat,d.lon],11);
+  invalidate();renderPoints();updateCapacity();
+  return true;
+}
+
+document.getElementById('useDefaultDepotBtn').onclick=()=>applyDefaultDepot(true);
+// fix: second "Create New Route" button previously shared an id and did nothing
+document.getElementById('newRouteBtn2')?.addEventListener('click',()=>newRouteBtn.onclick());
 document.getElementById('launchImportCsv').onclick=()=>showDashboardTab('csv');
 
 /* ============ Import CSV view: save customers as preferred addresses ============ */
@@ -3343,7 +3403,8 @@ const DEFAULT_PREFS={
   region:'US',timezone:Intl.DateTimeFormat().resolvedOptions().timeZone||'UTC',
   distance_unit:'miles',time_format:'12h',date_format:'MM/DD/YYYY',temperature_unit:'F',
   send_arrival_emails:true,send_weekly_email:false,send_delay_emails:false,
-  optimization_goal:'balanced',allow_overtime:false,group_cities:true,avoid_tolls:false,avoid_highways:false
+  optimization_goal:'balanced',allow_overtime:false,group_cities:true,avoid_tolls:false,avoid_highways:false,
+  default_depot:null
 };
 let currentBusinessPreferences=structuredClone(DEFAULT_PREFS);
 
@@ -3381,6 +3442,10 @@ function fillPrefs(p={}){
   prefRegion.value=x.region;prefTimezone.value=x.timezone;prefDistanceUnit.value=x.distance_unit;prefDateFormat.value=x.date_format;prefTemperatureUnit.value=x.temperature_unit;
   prefSendArrivalEmails.checked=x.send_arrival_emails;prefSendWeeklyEmail.checked=x.send_weekly_email;prefSendDelayEmails.checked=x.send_delay_emails;
   prefOptimizationGoal.value=x.optimization_goal;prefAllowOvertime.value=String(x.allow_overtime);prefGroupCities.checked=x.group_cities;prefAvoidTolls.checked=x.avoid_tolls;prefAvoidHighways.checked=x.avoid_highways;
+  prefDepotAddress.value=x.default_depot?.address||'';
+  prefDepotGeo=x.default_depot?{...x.default_depot}:null;
+  prefDepotStatus.style.display=prefDepotGeo?'block':'none';
+  prefDepotStatus.textContent=prefDepotGeo?'✓ Location verified and saved.':'';
 }
 function collectPrefs(){return{
   business_type:prefBusinessType.value,business_phone:prefBusinessPhone.value.trim(),business_website:prefBusinessWebsite.value.trim(),
@@ -3389,13 +3454,15 @@ function collectPrefs(){return{
   max_driving_minutes:+prefMaxDrivingMinutes.value,max_work_minutes:+prefMaxWorkMinutes.value,
   region:prefRegion.value,timezone:prefTimezone.value.trim()||'UTC',distance_unit:prefDistanceUnit.value,time_format:prefTimeFormat.value,date_format:prefDateFormat.value,temperature_unit:prefTemperatureUnit.value,
   send_arrival_emails:prefSendArrivalEmails.checked,send_weekly_email:prefSendWeeklyEmail.checked,send_delay_emails:prefSendDelayEmails.checked,
-  optimization_goal:prefOptimizationGoal.value,allow_overtime:prefAllowOvertime.value==='true',group_cities:prefGroupCities.checked,avoid_tolls:prefAvoidTolls.checked,avoid_highways:prefAvoidHighways.checked
+  optimization_goal:prefOptimizationGoal.value,allow_overtime:prefAllowOvertime.value==='true',group_cities:prefGroupCities.checked,avoid_tolls:prefAvoidTolls.checked,avoid_highways:prefAvoidHighways.checked,
+  default_depot:prefDepotGeo?{...prefDepotGeo}:null
 }}
 async function loadBusinessPreferences(user){
   const {data,error}=await supabaseClient.from('business_preferences').select('preferences').eq('user_id',user.id).maybeSingle();
   fillPrefs(error?DEFAULT_PREFS:(data?.preferences||DEFAULT_PREFS));
 }
 async function saveBusinessPreferences(user){
+  await ensureDepotGeo();
   const preferences=collectPrefs();
   const {error}=await supabaseClient.from('business_preferences').upsert({user_id:user.id,preferences,updated_at:new Date().toISOString()},{onConflict:'user_id'});
   if(error)throw error;currentBusinessPreferences=preferences;
@@ -3476,6 +3543,7 @@ newRouteBtn.onclick=async()=>{
   await clearMapForLoad();
   els.projectName.value='';
   applyPreferencesToNewProject();
+  applyDefaultDepot();
   const {data}=await supabaseClient.auth.getSession();
   if(data.session?.user)showAppScreen(data.session.user);
 };

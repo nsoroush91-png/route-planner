@@ -754,6 +754,12 @@ body{
 #newProjectView .rr-tab-hero{background-image:url('routeroush-hero.png');background-position:center 28%}
 #savedProjectsView .rr-tab-hero{background-image:linear-gradient(135deg,rgba(26,87,170,.26),rgba(85,39,170,.25)),url('routeroush-hero.png');background-position:center 50%}
 #preferredAddressesView .rr-tab-hero{background-image:linear-gradient(135deg,rgba(0,144,134,.20),rgba(48,88,180,.24)),url('routeroush-hero.png');background-position:center 66%}
+#importCsvView .rr-tab-hero{background-image:linear-gradient(135deg,rgba(26,87,170,.24),rgba(0,144,134,.20)),url('routeroush-hero.png');background-position:center 36%}
+#importCsvView textarea{width:100%;min-height:130px;background:#0a1626;color:#edf4ff;border:1px solid #2a4059;border-radius:10px;padding:11px;font-size:13px;font-family:inherit;box-sizing:border-box}
+.csv-preview{overflow:auto;margin-top:14px;border:1px solid #24405f;border-radius:12px}
+.csv-preview table{width:100%;border-collapse:collapse;font-size:13px}
+.csv-preview th,.csv-preview td{padding:8px 10px;border-bottom:1px solid #1c3350;text-align:left}
+.csv-preview th{background:#0d1c31;color:#9fc3e2;font-size:12px;text-transform:uppercase;letter-spacing:.05em}
 #profileView .rr-tab-hero{background-image:linear-gradient(135deg,rgba(76,41,166,.22),rgba(20,127,178,.20)),url('routeroush-hero.png');background-position:center 78%}
 .dashboard-single{max-width:1280px;margin:0 auto;padding:0}.section-heading{display:none!important}.visual-hero{display:none!important}
 .rr-launch-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:18px}
@@ -1321,6 +1327,7 @@ body{
         <button id="navNewProject" class="active">✨ <span class="label">New Project</span></button>
         <button id="navSavedProjects">📁 <span class="label">Saved Projects</span></button>
         <button id="navPreferredAddresses">📍 <span class="label">Preferred Addresses</span></button>
+        <button id="navImportCsv">📄 <span class="label">Import CSV</span></button>
         <button id="navProfile">👤 <span class="label">Profile</span></button>
       </nav>
       <div class="rr-sidebar-bottom">
@@ -1360,7 +1367,7 @@ body{
       <div class="rr-launch-grid">
         <div class="rr-launch-card"><div class="icon">➕</div><h3>Start from Scratch</h3><p>Create a new project from an empty workspace.</p></div>
         <div class="rr-launch-card"><div class="icon">📁</div><h3>Use Template</h3><p>Start from a reusable route structure.</p></div>
-        <div class="rr-launch-card"><div class="icon">📄</div><h3>Import CSV</h3><p>Upload customers and stops in one step.</p></div>
+        <div class="rr-launch-card" id="launchImportCsv" style="cursor:pointer"><div class="icon">📄</div><h3>Import CSV</h3><p>Upload customers and stops in one step.</p></div>
         <div class="rr-launch-card"><div class="icon">📍</div><h3>Use Saved Addresses</h3><p>Select saved customers and recurring locations.</p></div>
         <div class="rr-launch-card"><div class="icon">⚡</div><h3>Quick Project</h3><p>Apply your saved business preferences automatically.</p></div>
       </div>
@@ -1461,6 +1468,29 @@ body{
         </div>
     </div>
   </section>
+        <section id="importCsvView" class="app-view">
+          <div class="rr-tab-hero">
+            <div>
+              <div class="kicker">Customer import</div>
+              <h1>Import CSV</h1>
+              <p>Upload your customer list once — every address becomes a saved preferred address you can reuse in any route.</p>
+            </div>
+          </div>
+          <div class="card" style="padding:20px">
+            <p class="note" style="display:block">Upload a CSV file or paste rows below. The file needs an <b>address</b> column; <b>name</b>, <b>email</b>, and <b>minutes</b> columns are optional and will be picked up automatically. Plain pasted text works too — one address per line.</p>
+            <textarea id="csvViewText" placeholder="name,address,email,minutes&#10;John Rivera,200 W Washington St Phoenix AZ 85003,john@example.com,40"></textarea>
+            <input type="file" id="csvViewFile" accept=".csv,text/csv,text/plain" style="display:none">
+            <div class="row" style="margin-top:12px">
+              <button id="csvViewFileBtn" type="button">Upload CSV file</button>
+              <button id="csvViewParseBtn" type="button" class="green">Preview import</button>
+            </div>
+            <div id="csvViewStatus" class="note" style="display:none"></div>
+            <div id="csvViewPreview"></div>
+            <div class="row" id="csvViewSaveRow" style="display:none;margin-top:14px">
+              <button id="csvViewSaveBtn" type="button" class="green">Save all as preferred addresses</button>
+            </div>
+          </div>
+        </section>
         <section id="preferredAddressesView" class="app-view">
     <div class="dashboard-single">
       <div class="rr-tab-hero">
@@ -1942,6 +1972,8 @@ const rrSidebarEmail=document.getElementById('rrSidebarEmail');
 const newProjectView = document.getElementById('newProjectView');
 const savedProjectsView = document.getElementById('savedProjectsView');
 const preferredAddressesView = document.getElementById('preferredAddressesView');
+const importCsvView = document.getElementById('importCsvView');
+const navImportCsv = document.getElementById('navImportCsv');
 const profileView = document.getElementById('profileView');
 
 const newProjectSavedAddresses = document.getElementById('newProjectSavedAddresses');
@@ -2957,12 +2989,14 @@ function showDashboardTab(tabName){
     new:newProjectView,
     projects:savedProjectsView,
     addresses:preferredAddressesView,
+    csv:importCsvView,
     profile:profileView
   };
   const buttons={
     new:navNewProject,
     projects:navSavedProjects,
     addresses:navPreferredAddresses,
+    csv:navImportCsv,
     profile:navProfile
   };
 
@@ -2986,6 +3020,94 @@ navPreferredAddresses.onclick=async()=>{
   await loadPreferredAddresses();
 };
 navProfile.onclick=()=>showDashboardTab('profile');
+navImportCsv.onclick=()=>showDashboardTab('csv');
+document.getElementById('launchImportCsv').onclick=()=>showDashboardTab('csv');
+
+/* ============ Import CSV view: save customers as preferred addresses ============ */
+const csvViewText=$('csvViewText'),csvViewFile=$('csvViewFile'),csvViewFileBtn=$('csvViewFileBtn'),
+      csvViewParseBtn=$('csvViewParseBtn'),csvViewStatus=$('csvViewStatus'),
+      csvViewPreview=$('csvViewPreview'),csvViewSaveRow=$('csvViewSaveRow'),csvViewSaveBtn=$('csvViewSaveBtn');
+let csvViewEntries=[];
+
+function csvViewMsg(text,isErr=false){
+  csvViewStatus.style.display='block';
+  csvViewStatus.textContent=text;
+  csvViewStatus.style.color=isErr?'#fda4af':'';
+}
+
+csvViewFileBtn.onclick=()=>csvViewFile.click();
+csvViewFile.onchange=()=>{
+  const f=csvViewFile.files[0];
+  if(!f)return;
+  const reader=new FileReader();
+  reader.onload=()=>{csvViewText.value=String(reader.result);csvViewMsg(`File "${f.name}" loaded. Click Preview import.`);};
+  reader.onerror=()=>csvViewMsg('Could not read the file.',true);
+  reader.readAsText(f);
+};
+
+csvViewParseBtn.onclick=()=>{
+  const raw=csvViewText.value.trim();
+  if(!raw){csvViewMsg('Paste rows or upload a CSV file first.',true);return;}
+  const rows=parseCsv(raw);
+  csvViewEntries=rowsToEntries(rows);
+  if(!csvViewEntries.length){
+    csvViewMsg('No usable rows found. Check that the file has an address column (or one address per line).',true);
+    csvViewPreview.innerHTML='';csvViewSaveRow.style.display='none';
+    return;
+  }
+  if(csvViewEntries.length>500){
+    csvViewMsg(`That's ${csvViewEntries.length} rows — the limit per import is 500. Split the file and run twice.`,true);
+    return;
+  }
+  csvViewPreview.innerHTML=`<div class="csv-preview"><table><thead><tr><th>#</th><th>Name</th><th>Address</th><th>Email</th><th>Minutes</th></tr></thead><tbody>${
+    csvViewEntries.map((e,i)=>`<tr><td>${i+1}</td><td>${esc(e.name||'—')}</td><td>${esc(e.address)}</td><td>${esc(e.email||'—')}</td><td>${e.minutes||'—'}</td></tr>`).join('')
+  }</tbody></table></div>`;
+  csvViewMsg(`${csvViewEntries.length} row${csvViewEntries.length===1?'':'s'} ready. Review the preview, then save.`);
+  csvViewSaveRow.style.display='flex';
+};
+
+csvViewSaveBtn.onclick=async()=>{
+  const user=await updateAuthState();
+  if(!user)return csvViewMsg('Log in before importing.',true);
+  if(!csvViewEntries.length)return csvViewMsg('Nothing to save — preview an import first.',true);
+  csvViewSaveBtn.disabled=true;
+  csvViewMsg('Checking for duplicates…');
+  try{
+    const {data:existing,error:exErr}=await supabaseClient
+      .from('preferred_addresses').select('address').eq('user_id',user.id);
+    if(exErr)throw exErr;
+    const have=new Set((existing||[]).map(r=>r.address.trim().toLowerCase()));
+    const fresh=[],skipped=[];
+    const seen=new Set();
+    csvViewEntries.forEach(e=>{
+      const key=e.address.trim().toLowerCase();
+      if(have.has(key)||seen.has(key)){skipped.push(e);return;}
+      seen.add(key);
+      fresh.push({
+        user_id:user.id,
+        name:e.name||e.address.split(',')[0].trim(),
+        address:e.address,
+        email:e.email||null
+      });
+    });
+    if(!fresh.length){
+      csvViewMsg(`Nothing new to save — all ${csvViewEntries.length} addresses already exist in your preferred addresses.`);
+      return;
+    }
+    csvViewMsg(`Saving ${fresh.length} addresses…`);
+    for(let i=0;i<fresh.length;i+=100){
+      const {error}=await supabaseClient.from('preferred_addresses').insert(fresh.slice(i,i+100));
+      if(error)throw error;
+    }
+    csvViewMsg(`Done: ${fresh.length} saved as preferred addresses${skipped.length?`, ${skipped.length} skipped (already saved)`:''}. Find them in the Preferred Addresses tab, or via "Use Saved Addresses" in the planner.`);
+    csvViewPreview.innerHTML='';csvViewSaveRow.style.display='none';
+    csvViewText.value='';csvViewFile.value='';csvViewEntries=[];
+  }catch(err){
+    csvViewMsg(err?.message||'Import failed.',true);
+  }finally{
+    csvViewSaveBtn.disabled=false;
+  }
+};
 
 
 async function loadNewProjectSavedAddresses(){

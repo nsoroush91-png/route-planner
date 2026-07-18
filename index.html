@@ -354,7 +354,7 @@ html{overflow-x:clip}
 }
 .depot::before{
   content:'';position:absolute;inset:0;z-index:1;
-  background:linear-gradient(180deg,rgba(6,16,29,.78),rgba(6,16,29,.9));
+  background:linear-gradient(180deg,rgba(6,16,29,.6),rgba(6,16,29,.82));
 }
 .depot>*{position:relative;z-index:2}
 .depot.noimg .depot-bg{display:none}
@@ -477,7 +477,9 @@ footer{border-top:1px solid var(--line);margin-top:70px;padding:34px 0 44px}
   </section>
 
   <!-- STOP 03 -->
-  <section class="stop" id="how">
+  <section class="stop photo-stop" id="how">
+    <img class="stop-bg" src="img/road-winding-dusk.jpg" alt="" loading="lazy" onerror="this.closest('.photo-stop').classList.add('noimg')">
+    <div class="stop-inner">
     <div class="stop-pin" aria-hidden="true"></div>
     <div class="stop-kicker">Stop 03 · How it works</div>
     <h2 class="stop-title">Three steps to a planned week</h2>
@@ -494,6 +496,7 @@ footer{border-top:1px solid var(--line);margin-top:70px;padding:34px 0 44px}
         <h3>Smarter routes. Happier customers.</h3>
         <p>Less time behind the windshield means more jobs done, more accurate ETAs, and a week that runs the way you planned it.</p>
       </div>
+    </div>
     </div>
   </section>
 
@@ -601,7 +604,7 @@ footer{border-top:1px solid var(--line);margin-top:70px;padding:34px 0 44px}
   <section class="stop" id="start">
     <div class="stop-pin" aria-hidden="true"></div>
     <div class="depot">
-      <img class="depot-bg" src="routeroush-dashboard-bg.png" alt="" loading="lazy" onerror="this.closest('.depot').classList.add('noimg')">
+      <img class="depot-bg" src="routeroush-dashboard-bg.png" alt="" loading="lazy" onerror="if(!this.dataset.f){this.dataset.f=1;this.src='img/road-desert-dusk.jpg';}else{this.closest('.depot').classList.add('noimg');}">
       <div class="stop-kicker">↩ Return to depot</div>
       <h2>Your next week, planned in five minutes</h2>
       <p>Add your stops, hit optimize, and see what your week looks like without the wasted miles.</p>

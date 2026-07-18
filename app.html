@@ -1756,6 +1756,14 @@ body{
     <div id="bulkErrors" class="note" style="display:none"></div>
   </details>
 
+  <label>Preferred addresses</label>
+  <select id="wsPrefSelect"><option value="">Loading your saved addresses…</option></select>
+  <div class="row">
+    <button id="wsPrefAddBtn" class="green" type="button">Add as stop</button>
+    <button id="wsPrefAddAllBtn" type="button">Add all</button>
+  </div>
+  <div id="wsPrefStatus" class="note" style="display:none"></div>
+
   <label>Number of days</label>
   <input id="daysInput" type="number" min="1" max="14" value="2">
 
@@ -1861,8 +1869,8 @@ const $ = id => document.getElementById(id);
                 production (see /table API docs).
    ============================================================ */
 const CONFIG = {
-  MAPTILER_API_KEY: 'yc8e3vFdsWSBsutJcz7t',          // e.g. 'AbCdEf123...'
-  GEOAPIFY_API_KEY: '437fc42a3e5343529999c7d2c2ab07c0',          // e.g. 'a1b2c3d4...'
+  MAPTILER_API_KEY: '',          // e.g. 'AbCdEf123...'
+  GEOAPIFY_API_KEY: '',          // e.g. 'a1b2c3d4...'
   OSRM_URL: 'https://router.project-osrm.org'
 };
 
@@ -2155,6 +2163,95 @@ async function addPoint(lat,lon,address){
   invalidate();renderPoints();updateCapacity();
 }
 map.on('click',e=>addPoint(e.latlng.lat,e.latlng.lng));
+
+/* ============ Workspace preferred-address picker ============ */
+const wsPrefSelect=$('wsPrefSelect'),wsPrefAddBtn=$('wsPrefAddBtn'),
+      wsPrefAddAllBtn=$('wsPrefAddAllBtn'),wsPrefStatus=$('wsPrefStatus');
+
+function wsPrefMsg(text,isErr=false){
+  wsPrefStatus.style.display=text?'block':'none';
+  wsPrefStatus.textContent=text;
+  wsPrefStatus.style.color=isErr?'#fda4af':'';
+}
+
+async function loadWsPrefAddresses(){
+  const uid=await currentUserId();
+  if(!uid){wsPrefSelect.innerHTML='<option value="">Log in to use saved addresses</option>';return;}
+  const {data,error}=await supabaseClient
+    .from('preferred_addresses')
+    .select('id,name,address')
+    .eq('user_id',uid)
+    .order('name',{ascending:true});
+  if(error){wsPrefSelect.innerHTML='<option value="">Could not load addresses</option>';return;}
+  wsPrefSelect.innerHTML=data.length
+    ? '<option value="">Choose a saved address…</option>'+data.map(a=>`<option value="${esc(a.id)}">${esc(a.name)} — ${esc(a.address)}</option>`).join('')
+    : '<option value="">No saved addresses yet — use Import CSV or the Preferred Addresses tab</option>';
+}
+wsPrefSelect.addEventListener('focus',loadWsPrefAddresses);
+loadWsPrefAddresses();
+
+function wsStopFromSaved(record,geo){
+  const s={
+    id:crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random()),
+    lat:geo.lat,lon:geo.lon,address:geo.display,marker:null,
+    serviceMinutes:Number(els.service.value)||40,
+    earliest:'',latest:'',requiredWeekday:'',priority:'normal',
+    contactName:record.name||'',contactEmail:record.email||''
+  };
+  s.marker=L.marker([s.lat,s.lon],{icon:blueIcon,draggable:true}).addTo(map);
+  s.marker.on('dragend',async e=>{const p=e.target.getLatLng();s.lat=p.lat;s.lon=p.lng;s.address=await reverse(p.lat,p.lng);invalidate();renderPoints();});
+  stops.push(s);
+}
+
+wsPrefAddBtn.onclick=async()=>{
+  const id=wsPrefSelect.value;
+  if(!id)return wsPrefMsg('Choose a saved address from the list first.',true);
+  wsPrefAddBtn.disabled=true;
+  wsPrefMsg('Locating address…');
+  try{
+    const record=await getSavedAddressRecord(id);
+    if(stops.some(s=>s.contactName===record.name&&s.address.toLowerCase().includes(record.address.split(',')[0].toLowerCase()))){
+      wsPrefMsg(`"${record.name}" looks like it's already on this route.`,true);
+      return;
+    }
+    const geo=await geocodeSavedAddress(record.address);
+    wsStopFromSaved(record,geo);
+    invalidate();renderPoints();updateCapacity();
+    wsPrefMsg(`Added: ${record.name}`);
+  }catch(err){
+    wsPrefMsg(err?.message||'Could not add that address.',true);
+  }finally{
+    wsPrefAddBtn.disabled=false;
+  }
+};
+
+wsPrefAddAllBtn.onclick=async()=>{
+  const uid=await currentUserId();
+  if(!uid)return wsPrefMsg('Log in first.',true);
+  const {data,error}=await supabaseClient
+    .from('preferred_addresses').select('*').eq('user_id',uid).order('name',{ascending:true});
+  if(error)return wsPrefMsg(error.message,true);
+  if(!data.length)return wsPrefMsg('No saved addresses yet — use Import CSV first.',true);
+  if(data.length>200)return wsPrefMsg(`You have ${data.length} saved addresses — Add all is limited to 200.`,true);
+  wsPrefAddBtn.disabled=true;wsPrefAddAllBtn.disabled=true;
+  const delay=CONFIG.GEOAPIFY_API_KEY?250:1100;
+  const failed=[];let ok=0,skipped=0;
+  for(let i=0;i<data.length;i++){
+    const record=data[i];
+    wsPrefMsg(`Locating ${i+1} of ${data.length}… (${ok} added${failed.length?`, ${failed.length} failed`:''})`);
+    if(stops.some(s=>s.contactName===record.name)){skipped++;continue;}
+    try{
+      const geo=await geocodeSavedAddress(record.address);
+      wsStopFromSaved(record,geo);ok++;renderPoints();
+    }catch{failed.push(record.name||record.address);}
+    if(i<data.length-1)await new Promise(r=>setTimeout(r,delay));
+  }
+  invalidate();renderPoints();updateCapacity();
+  const pts=[...(depot?[[depot.lat,depot.lon]]:[]),...stops.map(s=>[s.lat,s.lon])];
+  if(pts.length)map.fitBounds(pts,{padding:[25,25]});
+  wsPrefMsg(`Done: ${ok} added${skipped?`, ${skipped} already on the route`:''}${failed.length?`. Could not locate: ${failed.join(', ')}`:'.'}`,failed.length>0);
+  wsPrefAddBtn.disabled=false;wsPrefAddAllBtn.disabled=false;
+};
 
 /* ================= Bulk import ================= */
 function parseCsv(text){

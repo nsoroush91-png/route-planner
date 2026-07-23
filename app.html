@@ -1331,6 +1331,52 @@ body{
 /* Secondary buttons */
 :root[data-theme="light"] button.secondary{background:#eaf1f9;color:#1f3355;border:1px solid #cfdcec}
 
+/* Base page background — soft, airy (the 'classy' surface) */
+:root[data-theme="light"] body{
+  background:
+    radial-gradient(circle at 84% 6%,rgba(124,58,237,.06),transparent 30%),
+    radial-gradient(circle at 10% 10%,rgba(38,160,255,.06),transparent 30%),
+    linear-gradient(180deg,#f6f8fc,#eef2f8)!important;
+}
+
+/* The dark wrapper that forced cards dark */
+:root[data-theme="light"] .rr-light-workspace{
+  background:transparent!important;color:#16243a!important;border-color:#e0e8f1!important;
+}
+:root[data-theme="light"] .rr-light-workspace label{color:#3c4c63}
+:root[data-theme="light"] .rr-light-workspace input,
+:root[data-theme="light"] .rr-light-workspace select,
+:root[data-theme="light"] .rr-light-workspace textarea{background:#fff;color:#16243a;border-color:#cdd9e7}
+:root[data-theme="light"] .rr-light-workspace .note{background:#eef4fb;color:#42536b}
+
+/* The three feature/benefit cards */
+:root[data-theme="light"] .visual-strip-card{
+  background:linear-gradient(145deg,#ffffff,#f3f7fc)!important;border:1px solid #e0e8f1;
+}
+:root[data-theme="light"] .visual-strip-card h3{color:#16243a}
+:root[data-theme="light"] .visual-strip-card p{color:#5a6b82}
+:root[data-theme="light"] .quick-card{
+  background:linear-gradient(145deg,#ffffff,#f4f8fc)!important;border:1px solid #e2eaf4;
+}
+:root[data-theme="light"] .quick-card strong{color:#16243a}
+:root[data-theme="light"] .quick-card span{color:#5a6b82}
+:root[data-theme="light"] .feature-icon{filter:none}
+
+/* Preference visual banner */
+:root[data-theme="light"] .preference-visual-banner{
+  background:linear-gradient(135deg,#e8f1fd,#f0eafd)!important;border:1px solid #dbe6f4;color:#16243a;
+}
+:root[data-theme="light"] .preference-visual-banner *{color:#16243a}
+
+/* Dashboard cards had a dark radial-gradient override — neutralize it */
+:root[data-theme="light"] .dashboard-card,
+:root[data-theme="light"] .pref-card,
+:root[data-theme="light"] .address-card,
+:root[data-theme="light"] .project-card{
+  background:#ffffff!important;border-color:#e0e8f1!important;
+}
+
+
 /* Toggle button */
 .theme-toggle{
   width:auto!important;padding:8px 12px!important;border-radius:10px;cursor:pointer;
@@ -1495,7 +1541,7 @@ body{
     <main class="rr-main">
       <header class="rr-topbar">
         <div class="rr-topbar-title"><strong id="navUserLabel">RouteRoush</strong><small>Plan smarter. Drive less.</small></div>
-        <div class="rr-topbar-actions"><button id="themeToggleDash" class="theme-toggle" type="button" title="Toggle light / dark">🌙 Dark</button><span id="dashboardWelcome" style="display:none"></span></div>
+        <div class="rr-topbar-actions"><button id="themeToggleDash" class="theme-toggle" type="button" title="Toggle Classy Light / Dark">🌙 Dark</button><span id="dashboardWelcome" style="display:none"></span></div>
       </header>
       <div class="rr-content">
         <section id="newProjectView" class="app-view active">
@@ -1860,7 +1906,7 @@ body{
   <div class="planner-top-actions">
     <button id="backDashboardBtn" class="secondary">← Back to tabs</button>
     <div class="top-user-bar" style="margin:0;padding:0">
-    <button id="themeTogglePlanner" class="theme-toggle" type="button" title="Toggle light / dark">🌙 Dark</button>
+    <button id="themeTogglePlanner" class="theme-toggle" type="button" title="Toggle Classy Light / Dark">🌙 Dark</button>
     <span id="topUserEmail"></span>
     <button id="topLogoutBtn" class="secondary">Log out</button>
     </div>
@@ -2381,7 +2427,7 @@ function applyTheme(mode){
   const root=document.documentElement;
   if(mode==='light')root.setAttribute('data-theme','light');
   else root.removeAttribute('data-theme');
-  const label=mode==='light'?'☀️ Light':'🌙 Dark';
+  const label=mode==='light'?'☀️ Classy Light':'🌙 Dark';
   ['themeToggleDash','themeTogglePlanner'].forEach(id=>{
     const b=document.getElementById(id);if(b)b.textContent=label;
   });

@@ -1306,6 +1306,22 @@ body{
 :root[data-theme="light"] .gstep{background:#fff;border:1px solid #e0e8f1}
 :root[data-theme="light"] .gstep .n{background:#dbe6f2;color:#3f5878}
 @media(max-width:640px){.guide-steps{grid-template-columns:1fr}}
+/* ============ Confirm dialog + empty states ============ */
+.rr-confirm-overlay{position:fixed;inset:0;z-index:3000;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(4,10,20,.62);backdrop-filter:blur(3px)}
+.rr-confirm-overlay.show{display:flex}
+.rr-confirm{max-width:400px;width:100%;background:var(--card,#0f1b2d);border:1px solid var(--line,#24364d);border-radius:18px;padding:24px;box-shadow:0 30px 80px rgba(0,0,0,.5)}
+.rr-confirm h3{margin:0 0 8px;font-size:18px;color:var(--text,#edf4ff)}
+.rr-confirm p{margin:0 0 20px;color:var(--muted,#9fb0c7);font-size:14px;line-height:1.5}
+.rr-confirm-actions{display:flex;gap:10px;justify-content:flex-end}
+.rr-confirm-actions button{width:auto;padding:10px 18px;font-size:14px}
+:root[data-theme="light"] .rr-confirm{background:#fff;border:1px solid #e0e8f1}
+:root[data-theme="light"] .rr-confirm h3{color:#16243a}
+.empty-state{text-align:center;padding:28px 20px;border:1px dashed var(--line,#2a4059);border-radius:14px;background:rgba(56,189,248,.04)}
+.empty-state .ei{font-size:30px;margin-bottom:8px}
+.empty-state h4{margin:0 0 5px;font-size:15px;color:var(--text,#edf4ff)}
+.empty-state p{margin:0 0 14px;font-size:13px;color:var(--muted,#9fb0c7)}
+.empty-state button{width:auto;padding:9px 16px;font-size:13px}
+:root[data-theme="light"] .empty-state h4{color:#16243a}
 </style>
 </head>
 <body>
@@ -1777,6 +1793,16 @@ body{
     </main>
   </div>
 </section>
+<div class="rr-confirm-overlay" id="rrConfirmOverlay">
+  <div class="rr-confirm">
+    <h3 id="rrConfirmTitle">Are you sure?</h3>
+    <p id="rrConfirmBody"></p>
+    <div class="rr-confirm-actions">
+      <button class="secondary" id="rrConfirmCancel">Cancel</button>
+      <button class="red" id="rrConfirmOk">Confirm</button>
+    </div>
+  </div>
+</div>
 <section id="appScreen">
   <div class="planner-top-actions">
     <button id="backDashboardBtn" class="secondary">← Back to tabs</button>
@@ -2278,6 +2304,24 @@ async function addPoint(lat,lon,address){
   invalidate();renderPoints();updateCapacity();
 }
 map.on('click',e=>addPoint(e.latlng.lat,e.latlng.lng));
+
+/* ============ Nice confirm dialog (replaces window.confirm) ============ */
+function rrConfirm(message,{title='Are you sure?',okText='Confirm',danger=true}={}){
+  return new Promise(resolve=>{
+    const ov=document.getElementById('rrConfirmOverlay');
+    document.getElementById('rrConfirmTitle').textContent=title;
+    document.getElementById('rrConfirmBody').textContent=message;
+    const ok=document.getElementById('rrConfirmOk');
+    const cancel=document.getElementById('rrConfirmCancel');
+    ok.textContent=okText;
+    ok.className=danger?'red':'green';
+    ov.classList.add('show');
+    const done=v=>{ov.classList.remove('show');ok.onclick=null;cancel.onclick=null;ov.onclick=null;resolve(v);};
+    ok.onclick=()=>done(true);
+    cancel.onclick=()=>done(false);
+    ov.onclick=e=>{if(e.target===ov)done(false);};
+  });
+}
 
 /* ============ Light / dark theme ============ */
 function applyTheme(mode){
@@ -3128,8 +3172,16 @@ openEmailDraftsBtn.onclick=async()=>{
 
 els.maps.onclick=()=>{if(!plans.length)return alert('Optimize routes first.');const p=plans[selected],q=new URLSearchParams({api:'1',origin:`${depot.lat},${depot.lon}`,destination:`${depot.lat},${depot.lon}`,waypoints:p.route.map(s=>`${s.lat},${s.lon}`).join('|'),travelmode:'driving'});window.open('https://www.google.com/maps/dir/?'+q.toString(),'_blank');};
 els.print.onclick=()=>{if(!plans.length)return alert('Optimize routes first.');window.print();};
-els.clearStops.onclick=()=>{stops.forEach(s=>map.removeLayer(s.marker));stops=[];invalidate();renderPoints();updateCapacity();};
-els.clearAll.onclick=()=>{els.clearStops.click();if(depotMarker)map.removeLayer(depotMarker);depot=null;depotMarker=null;renderPoints();};
+els.clearStops.onclick=async()=>{
+  if(stops.length>=3 && !(await rrConfirm('Remove all '+stops.length+' stops? Your starting point stays.',{title:'Clear stops?',okText:'Clear stops'})))return;
+  stops.forEach(s=>map.removeLayer(s.marker));stops=[];invalidate();renderPoints();updateCapacity();
+};
+els.clearAll.onclick=async()=>{
+  if((stops.length||depot) && !(await rrConfirm('This removes your starting point and all '+stops.length+' stop'+(stops.length===1?'':'s')+' from the map. This cannot be undone.',{title:'Clear everything?',okText:'Clear all'})))return;
+  stops.forEach(s=>map.removeLayer(s.marker));stops=[];
+  if(depotMarker)map.removeLayer(depotMarker);depot=null;depotMarker=null;
+  invalidate();renderPoints();updateCapacity();
+};
 
 function showAuthMessage(text,isError=false){
   els.authMessage.style.display='block';
@@ -3226,7 +3278,7 @@ async function loadPreferredAddresses(){
   }
 
   if(!data.length){
-    preferredAddressList.innerHTML='<div class="note">No preferred addresses saved yet.</div>';
+    preferredAddressList.innerHTML='<div class="empty-state"><div class="ei">📍</div><h4>No saved addresses yet</h4><p>Import your customer list in one step, or add addresses one at a time.</p><button class="green" onclick="showDashboardTab(\'csv\')">📄 Import CSV</button></div>';
     return;
   }
 
@@ -3255,7 +3307,7 @@ window.editPreferredAddress=async id=>{
 };
 
 window.deletePreferredAddress=async id=>{
-  if(!confirm('Delete this preferred address?'))return;
+  if(!(await rrConfirm('Delete this preferred address? It stays on any saved routes that already use it.',{title:'Delete address?',okText:'Delete'})))return;
   const {error}=await supabaseClient.from('preferred_addresses').delete().eq('id',id).eq('user_id',await currentUserId());
   if(error)return alert(error.message);
   await loadPreferredAddresses();
@@ -3726,7 +3778,7 @@ async function openDashboard(user){
 async function loadDashboardProjects(){
   const {data,error}=await supabaseClient.from('route_projects').select('id,project_name,updated_at').eq('user_id',await currentUserId()).order('updated_at',{ascending:false});
   if(error){dashboardProjects.innerHTML=`<div class="note">${esc(error.message)}</div>`;return;}
-  if(!data.length){dashboardProjects.innerHTML='<div class="note">No saved routes yet. Create your first route.</div>';return;}
+  if(!data.length){dashboardProjects.innerHTML='<div class="empty-state"><div class="ei">🗺️</div><h4>No saved routes yet</h4><p>Plan your first route and save it to see it here.</p><button class="green" onclick="document.getElementById(\'newRouteBtn2\')?.click()||document.getElementById(\'newRouteBtn\')?.click()">+ Start your first route</button></div>';return;}
   dashboardProjects.innerHTML=data.map(p=>`<div class="project-card">
     <h4>${esc(p.project_name)}</h4>
     <small>Updated ${new Date(p.updated_at).toLocaleString()}</small>
@@ -4140,7 +4192,7 @@ els.loadProjectBtn.onclick=async()=>{
 els.deleteProjectBtn.onclick=async()=>{
   const id=els.projectSelect.value;
   if(!id)return showProjectMessage('Select a saved project first.',true);
-  if(!confirm('Delete this saved project?'))return;
+  if(!(await rrConfirm('Delete this saved project permanently? This cannot be undone.',{title:'Delete project?',okText:'Delete'})))return;
   const {error}=await supabaseClient.from('route_projects').delete().eq('id',id).eq('user_id',await currentUserId());
   if(error)return showProjectMessage(error.message,true);
   els.projectName.value='';showProjectMessage('Project deleted.');await loadProjectList();

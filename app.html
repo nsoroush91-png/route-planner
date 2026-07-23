@@ -1300,6 +1300,21 @@ body{
 }
 :root[data-theme="light"] .rr-promo-copy h3{color:#16243a}
 :root[data-theme="light"] .rr-promo-copy p{color:#4a5b73}
+/* Outer content area (the dark page margins) */
+:root[data-theme="light"] .rr-content{
+  background:
+    linear-gradient(rgba(231,237,246,.6),rgba(221,230,241,.6)),
+    radial-gradient(circle at 82% 4%,rgba(124,58,237,.06),transparent 28%)!important;
+}
+/* "Use a Saved Address" bar */
+:root[data-theme="light"] .saved-address-home{
+  background:linear-gradient(145deg,#ffffff,#f3f7fc)!important;border:1px solid #e0e8f1!important;
+}
+:root[data-theme="light"] .saved-address-home summary{color:#16243a}
+:root[data-theme="light"] .saved-address-home-body{color:#16243a}
+:root[data-theme="light"] .saved-address-home-card{background:#f5f9fd;border:1px solid #e2eaf4}
+:root[data-theme="light"] .saved-address-home-note{color:#5a6b82}
+
 
 :root[data-theme="light"] .quick-card{background:#f6f9fd!important;border:1px solid #e2eaf4}
 :root[data-theme="light"] .quick-card strong{color:#16243a}
@@ -1558,7 +1573,7 @@ body{
     <main class="rr-main">
       <header class="rr-topbar">
         <div class="rr-topbar-title"><strong id="navUserLabel">RouteRoush</strong><small>Plan smarter. Drive less.</small></div>
-        <div class="rr-topbar-actions"><button id="themeToggleDash" class="theme-toggle" type="button" title="Toggle Classy Light / Dark">🌙 Dark</button><span id="dashboardWelcome" style="display:none"></span></div>
+        <div class="rr-topbar-actions"><button id="themeToggleDash" class="theme-toggle" type="button" title="Toggle Daylight Drive / Midnight Drive">🌙 Midnight Drive</button><span id="dashboardWelcome" style="display:none"></span></div>
       </header>
       <div class="rr-content">
         <section id="newProjectView" class="app-view active">
@@ -1923,7 +1938,7 @@ body{
   <div class="planner-top-actions">
     <button id="backDashboardBtn" class="secondary">← Back to tabs</button>
     <div class="top-user-bar" style="margin:0;padding:0">
-    <button id="themeTogglePlanner" class="theme-toggle" type="button" title="Toggle Classy Light / Dark">🌙 Dark</button>
+    <button id="themeTogglePlanner" class="theme-toggle" type="button" title="Toggle Daylight Drive / Midnight Drive">🌙 Midnight Drive</button>
     <span id="topUserEmail"></span>
     <button id="topLogoutBtn" class="secondary">Log out</button>
     </div>
@@ -2444,7 +2459,7 @@ function applyTheme(mode){
   const root=document.documentElement;
   if(mode==='light')root.setAttribute('data-theme','light');
   else root.removeAttribute('data-theme');
-  const label=mode==='light'?'☀️ Classy Light':'🌙 Dark';
+  const label=mode==='light'?'☀️ Daylight Drive':'🌙 Midnight Drive';
   ['themeToggleDash','themeTogglePlanner'].forEach(id=>{
     const b=document.getElementById(id);if(b)b.textContent=label;
   });

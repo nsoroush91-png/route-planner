@@ -1832,11 +1832,12 @@ body{
 <div id="emailModal" class="email-modal">
   <div class="email-modal-card">
     <h2 style="margin-top:0">Send estimated arrival emails?</h2>
-    <p>Select the contacts you want to notify. RouteRoush will open a prefilled email draft for each selected contact.</p>
+    <p>Select the contacts to notify. Review or edit each message, then send — emails go out from RouteRoush automatically.</p>
     <div id="emailPreviewList"></div>
+    <div id="emailSendStatus" class="note" style="display:none"></div>
     <div class="modal-actions">
       <button id="closeEmailModalBtn" class="secondary">Not now</button>
-      <button id="openEmailDraftsBtn" class="green">Open selected email drafts</button>
+      <button id="openEmailDraftsBtn" class="green">Send selected emails</button>
     </div>
   </div>
 
@@ -1879,8 +1880,8 @@ const $ = id => document.getElementById(id);
                 production (see /table API docs).
    ============================================================ */
 const CONFIG = {
-  MAPTILER_API_KEY: 'yc8e3vFdsWSBsutJcz7t',          // e.g. 'AbCdEf123...'
-  GEOAPIFY_API_KEY: '437fc42a3e5343529999c7d2c2ab07c0',          // e.g. 'a1b2c3d4...'
+  MAPTILER_API_KEY: '',          // e.g. 'AbCdEf123...'
+  GEOAPIFY_API_KEY: '',          // e.g. 'a1b2c3d4...'
   OSRM_URL: 'https://router.project-osrm.org'
 };
 
@@ -2899,21 +2900,43 @@ function offerArrivalEmails(){
 
 closeEmailModalBtn.onclick=()=>{emailModal.style.display='none';};
 
-openEmailDraftsBtn.onclick=()=>{
+const emailSendStatus=$('emailSendStatus');
+openEmailDraftsBtn.onclick=async()=>{
   const messages=JSON.parse(emailModal.dataset.messages||'[]');
   const selected=[...document.querySelectorAll('.arrival-email-check:checked')];
-
   if(!selected.length)return alert('Select at least one email.');
 
-  selected.forEach((checkbox,position)=>{
+  const emails=selected.map(checkbox=>{
     const index=Number(checkbox.dataset.index);
     const meta=messages[index];
-    const body=document.getElementById(`emailBody-${index}`).value;
-    const mailto=`mailto:${encodeURIComponent(meta.to)}?subject=${encodeURIComponent(meta.subject)}&body=${encodeURIComponent(body)}`;
-    window.setTimeout(()=>window.open(mailto,'_blank'),position*350);
+    return {to:meta.to,subject:meta.subject,body:document.getElementById(`emailBody-${index}`).value};
   });
 
-  emailModal.style.display='none';
+  openEmailDraftsBtn.disabled=true;closeEmailModalBtn.disabled=true;
+  emailSendStatus.style.display='block';emailSendStatus.style.color='';
+  emailSendStatus.textContent=`Sending ${emails.length} email${emails.length===1?'':'s'}… this takes about a second per email.`;
+
+  try{
+    const {data,error}=await supabaseClient.functions.invoke('send-arrival-emails',{body:{emails}});
+    if(error)throw error;
+    if(data?.error)throw new Error(data.error);
+    const failed=data?.failed||[];
+    if(!failed.length){
+      emailSendStatus.textContent=`✓ All ${data.sent} emails sent.`;
+      window.setTimeout(()=>{emailModal.style.display='none';emailSendStatus.style.display='none';},1600);
+    }else{
+      emailSendStatus.style.color='#fda4af';
+      emailSendStatus.textContent=`${data.sent} sent, ${failed.length} failed: ${failed.map(f=>`${f.to} (${f.error})`).join('; ')}`;
+    }
+  }catch(err){
+    emailSendStatus.style.color='#fda4af';
+    const msg=err?.message||String(err);
+    emailSendStatus.textContent=/Failed to send a request|not found|404/i.test(msg)
+      ? 'Email service is not set up yet — the send-arrival-emails function is missing in Supabase. See the setup steps.'
+      : `Could not send: ${msg}`;
+  }finally{
+    openEmailDraftsBtn.disabled=false;closeEmailModalBtn.disabled=false;
+  }
 };
 
 els.maps.onclick=()=>{if(!plans.length)return alert('Optimize routes first.');const p=plans[selected],q=new URLSearchParams({api:'1',origin:`${depot.lat},${depot.lon}`,destination:`${depot.lat},${depot.lon}`,waypoints:p.route.map(s=>`${s.lat},${s.lon}`).join('|'),travelmode:'driving'});window.open('https://www.google.com/maps/dir/?'+q.toString(),'_blank');};

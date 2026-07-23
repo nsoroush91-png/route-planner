@@ -1318,7 +1318,7 @@ body{
 <section id="dashboardScreen" style="display:none">
   <div class="rr-shell">
     <aside class="rr-sidebar">
-      <img class="rr-sidebar-logo" src="routeroush-logo.png" alt="RouteRoush">
+      <img class="rr-sidebar-logo" id="rrSidebarLogo" src="routeroush-logo.png" alt="RouteRoush — back to home" title="Back to home" style="cursor:pointer">
       <div class="rr-user-card">
         <div class="rr-avatar">RR</div>
         <div><strong id="rrSidebarName">RouteRoush User</strong><small id="rrSidebarEmail"></small></div>
@@ -3570,13 +3570,25 @@ newRouteBtn.onclick=async()=>{
   const {data}=await supabaseClient.auth.getSession();
   if(data.session?.user)showAppScreen(data.session.user);
 };
-backDashboardBtn.onclick=async()=>{
-  const {data}=await supabaseClient.auth.getSession();
-  if(data.session?.user){
-    await openDashboard(data.session.user);
+async function goToDashboardHome(){
+  // Use the session user if available, but never bounce to login just
+  // because a background fetch is slow — the dashboard is already rendered.
+  let user=null;
+  try{const {data}=await supabaseClient.auth.getSession();user=data.session?.user||null;}catch{}
+  if(!user){
+    // Still logged in on screen; fall back to showing the dashboard shell.
+    dashboardScreen.style.display='block';
+    appScreen.style.display='none';
     showDashboardTab('new');
+    return;
   }
-};
+  showDashboardScreen(user,null);        // instant, no awaits
+  showDashboardTab('new');
+  loadProfile(user).then(p=>showDashboardScreen(user,p)).catch(()=>{});
+  loadBusinessPreferences(user).catch(()=>{});
+}
+backDashboardBtn.onclick=goToDashboardHome;
+document.getElementById('rrSidebarLogo').onclick=()=>showDashboardTab('new');
 saveProfileBtn.onclick=async()=>{
   const {data}=await supabaseClient.auth.getSession();const user=data.session?.user;if(!user)return;
   saveProfileBtn.disabled=true;saveProfileBtn.textContent='Saving...';profileMessage.textContent='Saving...';

@@ -1218,66 +1218,119 @@ body{
 .bulk .hint{font-size:11.5px;color:#8ba0b9;margin:4px 0 8px;line-height:1.45}
 .bulk .row{margin:10px 0 12px}
 
-/* =================== LIGHT THEME =================== */
+/* =================== LIGHT THEME (complete) =================== */
 :root[data-theme="light"]{
-  --bg:#f4f7fb;--card:#ffffff;--text:#16243a;--muted:#5a6b82;
-  --line:#dbe4ef;--soft:#eef3f9;
+  --bg:#eef3f9;--card:#ffffff;--text:#16243a;--muted:#5a6b82;
+  --line:#dce5f0;--soft:#f1f5fa;
 }
-:root[data-theme="light"] body{background:#f4f7fb!important;color:#16243a}
+:root[data-theme="light"] body,
+:root[data-theme="light"] #dashboardScreen,
+:root[data-theme="light"] #appScreen,
+:root[data-theme="light"] .layout{background:#eef3f9!important;color:#16243a}
 :root[data-theme="light"] .rr-shell{background:#eef3f9}
-:root[data-theme="light"] .rr-sidebar{
-  background:linear-gradient(180deg,#ffffff,#f2f6fb)!important;border-right:1px solid #dde6f1;
-}
+
+/* Sidebar */
+:root[data-theme="light"] .rr-sidebar{background:linear-gradient(180deg,#fff,#f2f6fb)!important;border-right:1px solid #dce5f0}
 :root[data-theme="light"] .rr-side-nav button{color:#43536b}
 :root[data-theme="light"] .rr-side-nav button:hover{background:#eaf1f9;color:#16243a}
 :root[data-theme="light"] .rr-side-nav button.active{color:#fff}
 :root[data-theme="light"] .rr-user-card{background:#f4f8fc;border:1px solid #dbe6f2}
+:root[data-theme="light"] .rr-user-card strong{color:#16243a}
 :root[data-theme="light"] .rr-user-card small{color:#5a6b82}
 :root[data-theme="light"] .rr-sidebar-bottom{border-top:1px solid #e2eaf3}
-:root[data-theme="light"] .rr-topbar{
-  background:rgba(255,255,255,.94)!important;border-bottom:1px solid #dde6f1;
-}
+
+/* Topbar */
+:root[data-theme="light"] .rr-topbar{background:rgba(255,255,255,.95)!important;border-bottom:1px solid #dce5f0}
 :root[data-theme="light"] .rr-topbar-title strong{color:#16243a}
 :root[data-theme="light"] .rr-topbar-title small{color:#5a6b82}
-:root[data-theme="light"] .card,
-:root[data-theme="light"] .dashboard-card{
-  background:#ffffff!important;border:1px solid #e0e8f1;color:#16243a;
-  box-shadow:0 8px 24px rgba(30,50,90,.06);
+
+/* HERO PANELS — drop the dark photo, use a light brand gradient with dark text */
+:root[data-theme="light"] .rr-tab-hero,
+:root[data-theme="light"] #newProjectView .rr-tab-hero,
+:root[data-theme="light"] #savedProjectsView .rr-tab-hero,
+:root[data-theme="light"] #preferredAddressesView .rr-tab-hero,
+:root[data-theme="light"] #importCsvView .rr-tab-hero,
+:root[data-theme="light"] #profileView .rr-tab-hero{
+  background-image:linear-gradient(135deg,#e8f1fd 0%,#eef0ff 45%,#f0eafd 100%)!important;
+  border:1px solid #dbe6f4;box-shadow:0 14px 40px rgba(30,50,90,.08);
 }
-:root[data-theme="light"] .rr-launch-card{background:#ffffff!important;border:1px solid #e0e8f1}
+:root[data-theme="light"] .rr-tab-hero::before{background:none!important}
+:root[data-theme="light"] .rr-tab-hero h1{color:#16243a}
+:root[data-theme="light"] .rr-tab-hero p{color:#4a5b73}
+:root[data-theme="light"] .rr-tab-hero .kicker{color:#0d6a8c;background:rgba(34,199,242,.14);border:1px solid rgba(34,199,242,.3)}
+
+/* VISUAL PROMO ("Smarter routes / Stronger business") — same treatment */
+:root[data-theme="light"] .visual-hero{background:linear-gradient(135deg,#e8f1fd,#f0eafd)!important;border:1px solid #dbe6f4}
+:root[data-theme="light"] .visual-hero img{display:none!important}
+:root[data-theme="light"] .visual-hero::after{background:none!important}
+:root[data-theme="light"] .visual-hero-copy .eyebrow{color:#0d6a8c;background:rgba(34,199,242,.14)}
+:root[data-theme="light"] .visual-hero-copy h2{color:#16243a}
+:root[data-theme="light"] .visual-hero-copy p{color:#4a5b73}
+
+/* Cards / panels */
+:root[data-theme="light"] .card,
+:root[data-theme="light"] .dashboard-card,
+:root[data-theme="light"] .pref-card,
+:root[data-theme="light"] .address-card,
+:root[data-theme="light"] .project-card{
+  background:#fff!important;border:1px solid #e0e8f1;color:#16243a;box-shadow:0 8px 24px rgba(30,50,90,.06);
+}
+:root[data-theme="light"] .dashboard-card h2,
+:root[data-theme="light"] .dashboard-card h3,
+:root[data-theme="light"] .pref-card h3{color:#16243a}
+:root[data-theme="light"] .rr-launch-card{background:linear-gradient(145deg,#fff,#f2f7fc)!important;border:1px solid #dfe8f2}
 :root[data-theme="light"] .rr-launch-card h3{color:#16243a}
 :root[data-theme="light"] .rr-launch-card p{color:#5a6b82}
+
+/* Quick settings mini-cards */
+:root[data-theme="light"] .rr-quick-settings{background:#fff;border:1px solid #e0e8f1}
+:root[data-theme="light"] .quick-card{background:#f6f9fd!important;border:1px solid #e2eaf4}
+:root[data-theme="light"] .quick-card strong{color:#16243a}
+:root[data-theme="light"] .quick-card span{color:#5a6b82}
+
+/* Form fields */
 :root[data-theme="light"] label{color:#3c4c63}
 :root[data-theme="light"] input,
 :root[data-theme="light"] select,
-:root[data-theme="light"] textarea{
-  background:#ffffff!important;color:#16243a!important;border:1px solid #cdd9e7!important;
-}
+:root[data-theme="light"] textarea{background:#fff!important;color:#16243a!important;border:1px solid #cdd9e7!important}
 :root[data-theme="light"] input::placeholder,
 :root[data-theme="light"] textarea::placeholder{color:#93a2b6}
 :root[data-theme="light"] .note{background:#eef4fb;color:#42536b;border:1px solid #d9e5f2}
-:root[data-theme="light"] .pref-card{background:#ffffff;border:1px solid #e0e8f1}
-:root[data-theme="light"] .pref-card h3{color:#16243a}
-:root[data-theme="light"] .rr-pref-row,
-:root[data-theme="light"] .rr-pref-row *{color:#3c4c63}
+
+/* Bulk import + CSV preview + tables */
 :root[data-theme="light"] .bulk{background:#f6f9fd;border:1px solid #dbe4ef}
 :root[data-theme="light"] .bulk summary{color:#1f5fae}
-:root[data-theme="light"] .bulk textarea{background:#ffffff;color:#16243a;border:1px solid #cdd9e7}
+:root[data-theme="light"] .bulk textarea{background:#fff;color:#16243a}
 :root[data-theme="light"] .csv-preview{border:1px solid #dbe4ef}
 :root[data-theme="light"] .csv-preview th{background:#eef4fb;color:#3f5878}
 :root[data-theme="light"] .csv-preview td{color:#16243a}
 :root[data-theme="light"] .csv-preview th,
 :root[data-theme="light"] .csv-preview td{border-bottom:1px solid #e4ecf5}
-:root[data-theme="light"] .result-item,
-:root[data-theme="light"] .item{background:#ffffff;border:1px solid #e0e8f1;color:#16243a}
 :root[data-theme="light"] table{color:#16243a}
 :root[data-theme="light"] th{color:#3f5878}
-:root[data-theme="light"] .email-modal-card{background:#ffffff;color:#16243a}
-:root[data-theme="light"] .email-row textarea{background:#f7fafd;color:#16243a;border:1px solid #cdd9e7}
-:root[data-theme="light"] .planner-top-actions button.secondary,
+:root[data-theme="light"] .item,
+:root[data-theme="light"] .result-item{background:#fff;border:1px solid #e0e8f1;color:#16243a}
+
+/* Planner sidebar + header + guide */
+:root[data-theme="light"] .sidebar.card{background:#fff!important}
+:root[data-theme="light"] header h1{color:#16243a}
+:root[data-theme="light"] header p{color:#5a6b82}
+:root[data-theme="light"] .guide{background:linear-gradient(135deg,rgba(56,189,248,.10),rgba(139,92,246,.08));border:1px solid #dce6f2}
+:root[data-theme="light"] .gstep{background:#fff;border:1px solid #e0e8f1}
+:root[data-theme="light"] .gstep b{color:#16243a}
+:root[data-theme="light"] .gstep .n{background:#dbe6f2;color:#3f5878}
+:root[data-theme="light"] .mode button{background:#eef4fb;color:#1f3355;border:1px solid #d3e0ee}
+:root[data-theme="light"] .mode button.active{background:linear-gradient(135deg,#0ea5e9,#2563eb);color:#fff}
+
+/* Email modal + confirm */
+:root[data-theme="light"] .email-modal-card{background:#fff;color:#16243a}
+:root[data-theme="light"] .email-row textarea{background:#f7fafd;color:#16243a}
+:root[data-theme="light"] .rr-confirm{background:#fff;border:1px solid #e0e8f1}
+:root[data-theme="light"] .rr-confirm h3{color:#16243a}
+
+/* Secondary buttons */
 :root[data-theme="light"] button.secondary{background:#eaf1f9;color:#1f3355;border:1px solid #cfdcec}
-:root[data-theme="light"] #appScreen{background:#eef3f9}
-:root[data-theme="light"] .layout{background:#eef3f9}
+
 /* Toggle button */
 .theme-toggle{
   width:auto!important;padding:8px 12px!important;border-radius:10px;cursor:pointer;

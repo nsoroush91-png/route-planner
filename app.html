@@ -3239,16 +3239,81 @@ function routeScore(route,start,service,wd){
 }
 function improve(route,start,service,wd){
   let best=[...route],bs=routeScore(best,start,service,wd);
-  for(let pass=0;pass<20;pass++){
-    let changed=false;
-    outer:for(let i=0;i<best.length-1;i++)for(let j=i+1;j<best.length;j++){
+
+  const twoOptStep=()=>{
+    for(let i=0;i<best.length-1;i++)for(let j=i+1;j<best.length;j++){
       const c=[...best.slice(0,i),...best.slice(i,j+1).reverse(),...best.slice(j+1)];
       const cc=routeScore(c,start,service,wd);
-      if(cc<bs-.0001){best=c;bs=cc;changed=true;break outer;}
+      if(cc<bs-.0001){best=c;bs=cc;return true;}
     }
+    return false;
+  };
+  // or-opt: lift a run of 1..3 consecutive stops and reinsert elsewhere
+  const orOptStep=()=>{
+    for(let len=1;len<=3;len++){
+      for(let i=0;i+len<=best.length;i++){
+        const seg=best.slice(i,i+len);
+        const rest=[...best.slice(0,i),...best.slice(i+len)];
+        for(let k=0;k<=rest.length;k++){
+          if(k===i)continue; // same place
+          // also try the segment reversed
+          for(const s of [seg,[...seg].reverse()]){
+            const c=[...rest.slice(0,k),...s,...rest.slice(k)];
+            const cc=routeScore(c,start,service,wd);
+            if(cc<bs-.0001){best=c;bs=cc;return true;}
+          }
+        }
+      }
+    }
+    return false;
+  };
+
+  for(let pass=0;pass<40;pass++){
+    let changed=false;
+    while(twoOptStep())changed=true;   // exhaust 2-opt
+    if(orOptStep())changed=true;       // one or-opt move, then re-run 2-opt
     if(!changed)break;
   }
   return best;
+}
+
+// Inter-day rebalancing: try moving a stop from one day to a neighbouring day
+// if it lowers combined drive time, without breaking weekday/capacity/gap rules.
+function rebalanceDays(groups,start,service,firstWeekday,targets){
+  const dayScore=(g,wd)=>routeScore(improve(nearest(g,start,service,wd),start,service,wd),start,service,wd);
+  const wdFor=i=>(firstWeekday+i)%7;
+  const canPlace=(item,day)=>{
+    if(item.requiredWeekday!==''&&Number(item.requiredWeekday)!==wdFor(day))return false;
+    if(item.revisitOf)return false; // keep revisit-gap logic untouched
+    return true;
+  };
+  let improved=true,guard=0;
+  while(improved && guard++<6){
+    improved=false;
+    for(let a=0;a<groups.length;a++){
+      for(let b=0;b<groups.length;b++){
+        if(a===b||!groups[a].length)continue;
+        // don't blow past the other day's target by much
+        if(groups[b].length>=(targets[b]+1))continue;
+        const wdA=wdFor(a),wdB=wdFor(b);
+        const beforeA=dayScore(groups[a],wdA), beforeB=dayScore(groups[b],wdB);
+        for(let s=0;s<groups[a].length;s++){
+          const item=groups[a][s];
+          if(!canPlace(item,b))continue;
+          const newA=groups[a].filter((_,k)=>k!==s);
+          const newB=[...groups[b],item];
+          const afterA=newA.length?dayScore(newA,wdA):0;
+          const afterB=dayScore(newB,wdB);
+          if(afterA+afterB < beforeA+beforeB-0.5){
+            groups[a]=newA;groups[b]=newB;improved=true;break;
+          }
+        }
+        if(improved)break;
+      }
+      if(improved)break;
+    }
+  }
+  return groups;
 }
 
 function balancedClusters(items,days,firstWeekday){
@@ -3354,7 +3419,15 @@ async function optimize(){
     }
     els.run.textContent=`Clustering ${stops.length} stops into ${days} days...`;
     await new Promise(r=>setTimeout(r,25));
-    const groups=balancedClusters(stops,days,first);plans=[];
+    let groups=balancedClusters(stops,days,first);
+    // Inter-day rebalancing pass (skips when a single day or very small)
+    if(days>1 && stops.length>days){
+      const base=Math.floor(stops.length/days), extra=stops.length%days;
+      const targets=Array.from({length:days},(_,i)=>base+(i<extra?1:0));
+      els.run.textContent='Balancing days for shorter driving...';await new Promise(r=>setTimeout(r,15));
+      groups=rebalanceDays(groups,start,service,first,targets);
+    }
+    plans=[];
     for(let i=0;i<groups.length;i++){
       els.run.textContent=`Optimizing day ${i+1} of ${groups.length}...`;await new Promise(r=>setTimeout(r,15));
       const wd=(first+i)%7,before=cost(groups[i],start,service,wd).drive;
@@ -4468,7 +4541,7 @@ async function goToDashboardHome(){
   loadBusinessPreferences(user).catch(()=>{});
 }
 backDashboardBtn.onclick=goToDashboardHome;
-document.getElementById('rrSidebarLogo').onclick=()=>showDashboardTab('new');
+document.getElementById('rrSidebarLogo').onclick=()=>{ if(appScreen.style.display!=='none'){ goToDashboardHome(); } else { showDashboardTab('new'); } };
 saveProfileBtn.onclick=async()=>{
   const {data}=await supabaseClient.auth.getSession();const user=data.session?.user;if(!user)return;
   saveProfileBtn.disabled=true;saveProfileBtn.textContent='Saving...';profileMessage.textContent='Saving...';

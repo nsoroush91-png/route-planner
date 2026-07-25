@@ -3014,20 +3014,44 @@ function renderStopsPanel(){
     body.innerHTML='<div class="stops-empty">No stops yet. Add customers from the map, search, saved addresses, or CSV import.</div>';
     return;
   }
+  const wdOpts=(sel)=>`
+    <option value=""${sel===''?' selected':''}>Any day</option>
+    <option value="1"${sel==='1'?' selected':''}>Mon</option>
+    <option value="2"${sel==='2'?' selected':''}>Tue</option>
+    <option value="3"${sel==='3'?' selected':''}>Wed</option>
+    <option value="4"${sel==='4'?' selected':''}>Thu</option>
+    <option value="5"${sel==='5'?' selected':''}>Fri</option>
+    <option value="6"${sel==='6'?' selected':''}>Sat</option>
+    <option value="0"${sel==='0'?' selected':''}>Sun</option>`;
   body.innerHTML=`<table class="stops-table"><thead><tr>
-    <th class="idx">#</th><th>Customer / address</th><th>Service (min)</th><th></th></tr></thead><tbody>${
+    <th class="idx">#</th><th>Customer / address</th><th>Service</th><th>Preferred day</th><th>Preferred time</th><th></th></tr></thead><tbody>${
     stops.map((s,i)=>{
       const title=s.contactName?esc(s.contactName):esc(s.address.split(',')[0]);
       const revisit=s.revisitOf?`<span class="revisit-tag">🔁 2nd visit · +${s.revisitGapDays||1}d</span>`:'';
       return `<tr>
         <td class="idx">${i+1}</td>
         <td class="who"><b>${title}${revisit}</b><small>${esc(s.address)}</small></td>
-        <td><input class="svc" type="number" min="0" value="${s.serviceMinutes}" onchange="updateStopConstraint('${s.id}','serviceMinutes',this.value)"></td>
+        <td><input class="svc" type="number" min="0" value="${s.serviceMinutes}" onchange="updateStopConstraint('${s.id}','serviceMinutes',this.value)" title="Service minutes"></td>
+        <td><select class="svc" style="width:82px" onchange="updateStopConstraint('${s.id}','requiredWeekday',this.value)" title="Only schedule on this weekday">${wdOpts(s.requiredWeekday)}</select></td>
+        <td><input class="svc" style="width:100px" type="time" value="${s.earliest||''}" onchange="setPreferredTime('${s.id}',this.value)" title="Preferred arrival time"></td>
         <td><button class="rm" onclick="removeStop('${s.id}')">Remove</button></td>
       </tr>`;
     }).join('')
-  }</tbody></table>`;
+  }</tbody></table>
+  <p class="sub" style="margin-top:8px">Preferred time sets a 1-hour arrival window around the chosen time. Preferred day forces that stop onto a specific weekday.</p>`;
 }
+
+// A single "preferred time" control sets a +/- 1h arrival window for that stop.
+window.setPreferredTime=(id,value)=>{
+  const s=stops.find(x=>x.id===id);if(!s)return;
+  if(!value){s.earliest='';s.latest='';invalidate();renderPoints();return;}
+  const [h,m]=value.split(':').map(Number);
+  const total=h*60+m;
+  const lo=Math.max(0,total-60), hi=Math.min(24*60-1,total+60);
+  const fmt=t=>String(Math.floor(t/60)).padStart(2,'0')+':'+String(t%60).padStart(2,'0');
+  s.earliest=fmt(lo);s.latest=fmt(hi);
+  invalidate();renderPoints();
+};
 window.updateStopConstraint=(id,key,value)=>{
   const stop=stops.find(s=>s.id===id);
   if(!stop)return;
@@ -4818,13 +4842,26 @@ els.projectSelect.onchange=()=>{
   if(els.projectSelect.value)els.projectName.value=els.projectSelect.options[els.projectSelect.selectedIndex].textContent;
 };
 
+let _authReady=false;
 supabaseClient.auth.onAuthStateChange(async(event,session)=>{
   const user=session?.user || null;
-  if(user){
+
+  // Ignore token refreshes and repeat SIGNED_IN pings that fire while the
+  // user is already working — these used to bounce them back to the dashboard.
+  if(event==='TOKEN_REFRESHED' || event==='USER_UPDATED') return;
+
+  if(event==='SIGNED_OUT' || !user){
+    _authReady=false;
+    showLoginScreen();
+    return;
+  }
+
+  if(event==='SIGNED_IN'){
+    const alreadyIn = dashboardScreen.style.display!=='none' || appScreen.style.display!=='none';
+    if(_authReady && alreadyIn) return;   // already showing the app; don't reset the view
+    _authReady=true;
     await openDashboard(user);
     await updateAuthState();
-  }else{
-    showLoginScreen();
   }
 });
 
@@ -4837,6 +4874,7 @@ renderPoints();
   const user=data?.session?.user || null;
 
   if(user){
+    _authReady=true;
     await openDashboard(user);
     await updateAuthState();
     await loadProjectList();

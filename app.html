@@ -1502,6 +1502,22 @@ body{
 .cal-head button{width:auto;padding:6px 12px}
 :root[data-theme="light"] .due-row{background:#fff;border:1px solid #e0e8f1}
 :root[data-theme="light"] .cal .cell{background:#f7fafd;border:1px solid #e2eaf4}
+/* ============ Added-stops list below map ============ */
+.stops-panel{margin-top:16px}
+.stops-panel h3{margin:0 0 4px;font-size:16px}
+.stops-panel .sub{margin:0 0 12px;color:var(--muted,#9fb0c7);font-size:13px}
+.stops-table{width:100%;border-collapse:collapse;font-size:13px}
+.stops-table th{text-align:left;padding:8px 10px;color:var(--muted,#9fb0c7);font-size:11px;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--line,#24405f)}
+.stops-table td{padding:8px 10px;border-bottom:1px solid var(--line,#1c3350);vertical-align:middle}
+.stops-table .idx{width:34px;color:var(--muted);font-weight:700}
+.stops-table .who b{display:block}
+.stops-table .who small{color:var(--muted,#9fb0c7)}
+.stops-table input.svc{width:64px;padding:6px 8px;border-radius:8px}
+.stops-table .rm{width:auto;padding:6px 10px;font-size:12px;background:#301724;color:#fda4af;border:1px solid #5a2740}
+.stops-table .revisit-tag{display:inline-block;margin-left:6px;font-size:11px;font-weight:700;padding:1px 7px;border-radius:999px;background:rgba(139,92,246,.16);color:#c4b5fd;border:1px solid rgba(139,92,246,.35)}
+.stops-empty{padding:22px;text-align:center;color:var(--muted,#9fb0c7);border:1px dashed var(--line,#2a4059);border-radius:12px}
+:root[data-theme="light"] .stops-table .rm{background:#fdecef;color:#b4344f;border:1px solid #f2c9d3}
+:root[data-theme="light"] .stops-table .revisit-tag{background:#efe9fd;color:#6d4bd0;border:1px solid #d9ccf6}
 </style>
 </head>
 <body>
@@ -2205,6 +2221,13 @@ body{
 
 <main>
   <div id="map" class="card"></div>
+
+  <section class="card stops-panel" id="stopsPanel">
+    <h3>Stops on this route <span id="stopsCount" style="color:var(--muted);font-weight:400"></span></h3>
+    <p class="sub">These are the customers you've added. Adjust service time or remove any before optimizing.</p>
+    <div id="stopsPanelBody"></div>
+  </section>
+
   <section class="card results">
     <div id="printTitle"></div>
     <div id="tabs" class="tabs"></div>
@@ -2570,7 +2593,9 @@ function showDashboardScreen(user,profile){
   profileFirstName.value=first;
   profileLastName.value=last;
   profileBusinessName.value=business;
-  showDashboardTab('new');
+  // Only default to the New Project tab on the FIRST render — never yank the
+  // user off their current tab during a background profile/preferences refresh.
+  if(!document.querySelector('.app-view.active')) showDashboardTab('new');
 }
 
 function showAppScreen(user){
@@ -2669,6 +2694,20 @@ function toggleTheme(){applyTheme(currentTheme()==='light'?'dark':'light');}
   const b=document.getElementById(id);if(b)b.onclick=toggleTheme;
 });
 
+/* ============ Optional revisit (same customer, later day) ============ */
+async function askRevisit(name){
+  const yes=await rrConfirm(
+    `"${name}" is already on this route. Do you want to visit them a second time this week (on a different day)?`,
+    {title:'Add a second visit?',okText:'Yes, add 2nd visit',danger:false});
+  if(!yes)return null;
+  // ask for the gap in days
+  let gap=window.prompt('How many days after the first visit should the second visit happen? (1–6)','3');
+  if(gap===null)return null;
+  gap=parseInt(gap,10);
+  if(!(gap>=1&&gap<=6))gap=3;
+  return gap;
+}
+
 /* ============ Workspace preferred-address picker ============ */
 const wsPrefSelect=$('wsPrefSelect'),wsPrefAddBtn=$('wsPrefAddBtn'),
       wsPrefAddAllBtn=$('wsPrefAddAllBtn'),wsPrefStatus=$('wsPrefStatus');
@@ -2695,13 +2734,16 @@ async function loadWsPrefAddresses(){
 wsPrefSelect.addEventListener('focus',loadWsPrefAddresses);
 loadWsPrefAddresses();
 
-function wsStopFromSaved(record,geo){
+function wsStopFromSaved(record,geo,revisit){
   const s={
     id:crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random()),
+    savedId:revisit?null:(record.id||null), // 2nd visit not counted as the same saved stop for dedupe
     lat:geo.lat,lon:geo.lon,address:geo.display,marker:null,
     serviceMinutes:Number(els.service.value)||40,
     earliest:'',latest:'',requiredWeekday:'',priority:'normal',
-    contactName:record.name||'',contactEmail:record.email||''
+    contactName:record.name||'',contactEmail:record.email||'',
+    revisitOf:revisit?.revisitOf||null,
+    revisitGapDays:revisit?.revisitGapDays||null
   };
   s.marker=L.marker([s.lat,s.lon],{icon:blueIcon,draggable:true}).addTo(map);
   s.marker.on('dragend',async e=>{const p=e.target.getLatLng();s.lat=p.lat;s.lon=p.lng;s.address=await reverse(p.lat,p.lng);invalidate();renderPoints();});
@@ -2715,14 +2757,20 @@ wsPrefAddBtn.onclick=async()=>{
   wsPrefMsg('Locating address…');
   try{
     const record=await getSavedAddressRecord(id);
-    if(stops.some(s=>s.contactName===record.name&&s.address.toLowerCase().includes(record.address.split(',')[0].toLowerCase()))){
-      wsPrefMsg(`"${record.name}" looks like it's already on this route.`,true);
-      return;
+    const existing=stops.find(s=>s.savedId&&s.savedId===record.id);
+    let gap=null;
+    if(existing){
+      gap=await askRevisit(record.name);
+      if(gap===null){wsPrefMsg(`"${record.name}" is already on this route.`);return;}
     }
     const geo=await geocodeSavedAddress(record.address);
-    wsStopFromSaved(record,geo);
+    if(!existing && stops.some(s=>Math.abs(s.lat-geo.lat)<1e-6&&Math.abs(s.lon-geo.lon)<1e-6)){
+      wsPrefMsg(`A stop at that location is already on the route.`,true);
+      return;
+    }
+    wsStopFromSaved(record,geo,existing?{revisitOf:existing.id,revisitGapDays:gap}:null);
     invalidate();renderPoints();updateCapacity();
-    wsPrefMsg(`Added: ${record.name}`);
+    wsPrefMsg(existing?`Added a 2nd visit for ${record.name} (+${gap} days).`:`Added: ${record.name}`);
   }catch(err){
     wsPrefMsg(err?.message||'Could not add that address.',true);
   }finally{
@@ -2744,9 +2792,10 @@ wsPrefAddAllBtn.onclick=async()=>{
   for(let i=0;i<data.length;i++){
     const record=data[i];
     wsPrefMsg(`Locating ${i+1} of ${data.length}… (${ok} added${failed.length?`, ${failed.length} failed`:''})`);
-    if(stops.some(s=>s.contactName===record.name)){skipped++;continue;}
+    if(stops.some(s=>s.savedId&&s.savedId===record.id)){skipped++;continue;}
     try{
       const geo=await geocodeSavedAddress(record.address);
+      if(stops.some(s=>Math.abs(s.lat-geo.lat)<1e-6&&Math.abs(s.lon-geo.lon)<1e-6)){skipped++;continue;}
       wsStopFromSaved(record,geo);ok++;renderPoints();
     }catch{failed.push(record.name||record.address);}
     if(i<data.length-1)await new Promise(r=>setTimeout(r,delay));
@@ -2953,6 +3002,31 @@ function renderPoints(){
     </div>`;
   });
   els.pointList.innerHTML=h;
+  renderStopsPanel();
+}
+
+function renderStopsPanel(){
+  const body=document.getElementById('stopsPanelBody');
+  const count=document.getElementById('stopsCount');
+  if(!body)return;
+  count.textContent = stops.length ? `(${stops.length})` : '';
+  if(!stops.length){
+    body.innerHTML='<div class="stops-empty">No stops yet. Add customers from the map, search, saved addresses, or CSV import.</div>';
+    return;
+  }
+  body.innerHTML=`<table class="stops-table"><thead><tr>
+    <th class="idx">#</th><th>Customer / address</th><th>Service (min)</th><th></th></tr></thead><tbody>${
+    stops.map((s,i)=>{
+      const title=s.contactName?esc(s.contactName):esc(s.address.split(',')[0]);
+      const revisit=s.revisitOf?`<span class="revisit-tag">🔁 2nd visit · +${s.revisitGapDays||1}d</span>`:'';
+      return `<tr>
+        <td class="idx">${i+1}</td>
+        <td class="who"><b>${title}${revisit}</b><small>${esc(s.address)}</small></td>
+        <td><input class="svc" type="number" min="0" value="${s.serviceMinutes}" onchange="updateStopConstraint('${s.id}','serviceMinutes',this.value)"></td>
+        <td><button class="rm" onclick="removeStop('${s.id}')">Remove</button></td>
+      </tr>`;
+    }).join('')
+  }</tbody></table>`;
 }
 window.updateStopConstraint=(id,key,value)=>{
   const stop=stops.find(s=>s.id===id);
@@ -3186,7 +3260,15 @@ function balancedClusters(items,days,firstWeekday){
     return a.lon-b.lon;
   });
 
-  for(const item of flexible){
+  // Helper: which day index did a given stop id land on?
+  const dayOf=id=>{for(let i=0;i<groups.length;i++)if(groups[i].some(x=>x.id===id))return i;return -1;};
+
+  // Place non-revisit flexible stops first, then revisit stops (so their
+  // first-visit partner already has a day assigned).
+  const firstPass=flexible.filter(x=>!x.revisitOf);
+  const revisits=flexible.filter(x=>x.revisitOf);
+
+  for(const item of firstPass){
     let bestDay=-1,bestScore=Infinity;
     for(let i=0;i<days;i++){
       if(groups[i].length>=targets[i])continue;
@@ -3201,6 +3283,30 @@ function balancedClusters(items,days,firstWeekday){
       if(score<bestScore){bestScore=score;bestDay=i;}
     }
     if(bestDay===-1)bestDay=groups.map((g,i)=>({i,n:g.length})).sort((a,b)=>a.n-b.n)[0].i;
+    groups[bestDay].push(item);
+  }
+
+  // Revisit stops: must land at least `revisitGapDays` day-slots after the
+  // day their first visit is on. (One route day ≈ one calendar day here.)
+  for(const item of revisits){
+    const firstDay=dayOf(item.revisitOf);
+    const minDay=firstDay>=0?firstDay+(item.revisitGapDays||1):0;
+    let bestDay=-1,bestScore=Infinity;
+    for(let i=Math.max(0,minDay);i<days;i++){
+      let score=groups[i].length*1000;
+      if(groups[i].length){
+        const centroid={
+          lat:groups[i].reduce((s,x)=>s+x.lat,0)/groups[i].length,
+          lon:groups[i].reduce((s,x)=>s+x.lon,0)/groups[i].length
+        };
+        score+=dist(item,centroid);
+      }
+      if(score<bestScore){bestScore=score;bestDay=i;}
+    }
+    if(bestDay===-1){
+      // Not enough days to honor the gap — tell the user rather than silently ignore.
+      throw new Error(`"${item.contactName||item.address}" needs a 2nd visit ${item.revisitGapDays} day(s) after its first, but there aren't enough route days. Add more days (currently ${days}).`);
+    }
     groups[bestDay].push(item);
   }
   return groups;
@@ -3681,9 +3787,12 @@ window.addPreferredAddressToRoute=async id=>{
     const {data,error}=await supabaseClient.from('preferred_addresses').select('*').eq('id',id).eq('user_id',await currentUserId()).single();
     if(error)throw error;
     const geo=await geocodeSavedAddress(data.address);
-
+    if(stops.some(s=>s.savedId&&s.savedId===data.id)){
+      alert(`"${data.name}" is already on the current route.`);return;
+    }
     const s={
       id:crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random()),
+      savedId:data.id||null,
       lat:geo.lat,
       lon:geo.lon,
       address:geo.display,
@@ -3733,6 +3842,11 @@ function showDashboardTab(tabName){
 
   views[tabName]?.classList.add('active');
   buttons[tabName]?.classList.add('active');
+
+  // Scroll the content back to top so a long previous tab doesn't leave
+  // the new tab scrolled halfway down (which reads as a 'jump').
+  const content=document.querySelector('.rr-content')||window;
+  try{ (content===window?window:content).scrollTo({top:0,behavior:'instant'}); }catch{ window.scrollTo(0,0); }
 }
 
 navNewProject.onclick=async()=>{

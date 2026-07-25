@@ -1463,6 +1463,45 @@ body{
 .empty-state p{margin:0 0 14px;font-size:13px;color:var(--muted,#9fb0c7)}
 .empty-state button{width:auto;padding:9px 16px;font-size:13px}
 :root[data-theme="light"] .empty-state h4{color:#16243a}
+/* ============ Inactivity warning toast ============ */
+.idle-toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(120%);z-index:4000;
+  max-width:360px;width:calc(100% - 40px);background:var(--card,#0f1b2d);border:1px solid #d97706;
+  border-radius:14px;padding:14px 16px;box-shadow:0 20px 60px rgba(0,0,0,.4);
+  transition:transform .3s ease;display:flex;gap:12px;align-items:center}
+.idle-toast.show{transform:translateX(-50%) translateY(0)}
+.idle-toast p{margin:0;font-size:13px;color:var(--text,#edf4ff);line-height:1.4;flex:1}
+.idle-toast button{width:auto;padding:8px 14px;font-size:13px}
+:root[data-theme="light"] .idle-toast{background:#fff;border:1px solid #d97706}
+:root[data-theme="light"] .idle-toast p{color:#16243a}
+/* ============ Recurring schedule ============ */
+.recur-fields{margin-top:6px;padding:12px;border:1px solid var(--line,#24405f);border-radius:12px;background:rgba(56,189,248,.05)}
+.recur-fields .recur-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.recur-badge{display:inline-block;margin-top:4px;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:700;background:rgba(34,211,166,.14);color:#22d3a6;border:1px solid rgba(34,211,166,.3)}
+.recur-badge.due{background:rgba(249,115,22,.16);color:#fb923c;border-color:rgba(249,115,22,.35)}
+.recur-badge.none{background:rgba(148,163,184,.14);color:#94a3b8;border-color:rgba(148,163,184,.3)}
+:root[data-theme="light"] .recur-fields{background:#f5f9fd;border:1px solid #dce6f2}
+@media(max-width:640px){.recur-fields .recur-row{grid-template-columns:1fr}}
+/* ============ Recurring Schedule tab ============ */
+#recurringView .rr-tab-hero{background-image:linear-gradient(135deg,rgba(34,211,166,.22),rgba(48,88,180,.22)),url('routeroush-hero.png');background-position:center 46%}
+.due-toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px}
+.due-toolbar .grow{flex:1}
+.due-list{display:grid;gap:10px}
+.due-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;padding:12px 14px;border:1px solid var(--line,#24405f);border-radius:12px;background:var(--card,#0f1b2d)}
+.due-row .who{min-width:200px;flex:1}
+.due-row .who b{display:block}
+.due-row .who small{color:var(--muted,#9fb0c7)}
+.due-row .acts{display:flex;gap:8px;align-items:center}
+.due-row button{width:auto;padding:8px 12px;font-size:13px}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-top:8px}
+.cal .dow{text-align:center;font-size:11px;font-weight:700;color:var(--muted);padding:4px 0}
+.cal .cell{min-height:64px;border:1px solid var(--line,#24405f);border-radius:9px;padding:5px;font-size:11px;background:var(--card,#0f1b2d)}
+.cal .cell.other{opacity:.4}
+.cal .cell .dn{font-weight:700;font-size:12px;margin-bottom:3px}
+.cal .visit{display:block;background:rgba(34,211,166,.16);color:#22d3a6;border-radius:5px;padding:1px 5px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.cal-head button{width:auto;padding:6px 12px}
+:root[data-theme="light"] .due-row{background:#fff;border:1px solid #e0e8f1}
+:root[data-theme="light"] .cal .cell{background:#f7fafd;border:1px solid #e2eaf4}
 </style>
 </head>
 <body>
@@ -1574,6 +1613,7 @@ body{
         <button id="navSavedProjects">📁 <span class="label">Saved Projects</span></button>
         <button id="navPreferredAddresses">📍 <span class="label">Preferred Addresses</span></button>
         <button id="navImportCsv">📄 <span class="label">Import CSV</span></button>
+        <button id="navRecurring">🔁 <span class="label">Recurring Schedule</span></button>
         <button id="navProfile">👤 <span class="label">Profile</span></button>
       </nav>
       <div class="rr-sidebar-bottom">
@@ -1714,6 +1754,45 @@ body{
         </div>
     </div>
   </section>
+        <section id="recurringView" class="app-view">
+          <div class="rr-tab-hero">
+            <div>
+              <div class="kicker">Recurring visits</div>
+              <h1>Recurring Schedule</h1>
+              <p>See who's due for a visit, build this week's route in one click, and view your upcoming visits on the calendar.</p>
+            </div>
+          </div>
+
+          <div class="card" style="padding:20px;margin-bottom:16px">
+            <h3 style="margin-top:0">Due for a visit</h3>
+            <div class="due-toolbar">
+              <label style="margin:0">Show due within
+                <select id="dueWindow" style="width:auto;display:inline-block;margin-left:6px">
+                  <option value="0">today</option>
+                  <option value="7" selected>7 days</option>
+                  <option value="14">14 days</option>
+                  <option value="30">30 days</option>
+                </select>
+              </label>
+              <span class="grow"></span>
+              <button id="buildDueRouteBtn" class="green" type="button">🗺️ Build route from all due</button>
+            </div>
+            <div id="dueStatus" class="note" style="display:none"></div>
+            <div id="dueList" class="due-list"></div>
+          </div>
+
+          <div class="card" style="padding:20px">
+            <div class="cal-head">
+              <h3 style="margin:0">Upcoming visits</h3>
+              <div>
+                <button class="secondary" id="calPrev" type="button">‹</button>
+                <strong id="calLabel" style="margin:0 8px"></strong>
+                <button class="secondary" id="calNext" type="button">›</button>
+              </div>
+            </div>
+            <div class="cal" id="calGrid"></div>
+          </div>
+        </section>
         <section id="importCsvView" class="app-view">
           <div class="rr-tab-hero">
             <div>
@@ -1785,7 +1864,44 @@ body{
         <label>Address</label>
         <input id="savedAddressAddress" placeholder="Street, city, state, ZIP">
 
-        <div class="row">
+        <label style="margin-top:14px">Recurring visits <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
+        <div class="recur-fields">
+          <div class="recur-row">
+            <div>
+              <label style="margin-top:0">Visit every</label>
+              <select id="savedAddressFreq">
+                <option value="">Not recurring</option>
+                <option value="1">Every week</option>
+                <option value="2">Every 2 weeks</option>
+                <option value="4">Every 4 weeks</option>
+                <option value="6">Every 6 weeks</option>
+                <option value="custom">Custom…</option>
+              </select>
+            </div>
+            <div id="savedAddressFreqCustomWrap" style="display:none">
+              <label style="margin-top:0">Weeks between visits</label>
+              <input id="savedAddressFreqCustom" type="number" min="1" max="52" placeholder="e.g. 3">
+            </div>
+          </div>
+          <div class="recur-row" style="margin-top:10px">
+            <div>
+              <label style="margin-top:0">Preferred day</label>
+              <select id="savedAddressWeekday">
+                <option value="">Any day</option>
+                <option value="1">Monday</option><option value="2">Tuesday</option>
+                <option value="3">Wednesday</option><option value="4">Thursday</option>
+                <option value="5">Friday</option><option value="6">Saturday</option>
+                <option value="0">Sunday</option>
+              </select>
+            </div>
+            <div>
+              <label style="margin-top:0">Last visited</label>
+              <input id="savedAddressLastVisited" type="date">
+            </div>
+          </div>
+        </div>
+
+        <div class="row" style="margin-top:14px">
           <button id="savePreferredAddressBtn" class="green">Save address</button>
           <button id="clearPreferredAddressBtn" class="secondary">Clear form</button>
         </div>
@@ -1934,6 +2050,10 @@ body{
     </main>
   </div>
 </section>
+<div class="idle-toast" id="idleToast">
+  <p id="idleToastMsg">You'll be logged out soon due to inactivity.</p>
+  <button class="green" id="idleStayBtn" type="button">Stay logged in</button>
+</div>
 <div class="rr-confirm-overlay" id="rrConfirmOverlay">
   <div class="rr-confirm">
     <h3 id="rrConfirmTitle">Are you sure?</h3>
@@ -2264,6 +2384,8 @@ const savedProjectsView = document.getElementById('savedProjectsView');
 const preferredAddressesView = document.getElementById('preferredAddressesView');
 const importCsvView = document.getElementById('importCsvView');
 const navImportCsv = document.getElementById('navImportCsv');
+const recurringView = document.getElementById('recurringView');
+const navRecurring = document.getElementById('navRecurring');
 const profileView = document.getElementById('profileView');
 
 const newProjectSavedAddresses = document.getElementById('newProjectSavedAddresses');
@@ -2309,6 +2431,27 @@ const resetPreferencesBtn=document.getElementById('resetPreferencesBtn');
 const savedAddressName = document.getElementById('savedAddressName');
 const savedAddressEmail = document.getElementById('savedAddressEmail');
 const savedAddressAddress = document.getElementById('savedAddressAddress');
+const savedAddressFreq = document.getElementById('savedAddressFreq');
+const savedAddressFreqCustom = document.getElementById('savedAddressFreqCustom');
+const savedAddressFreqCustomWrap = document.getElementById('savedAddressFreqCustomWrap');
+const savedAddressWeekday = document.getElementById('savedAddressWeekday');
+const savedAddressLastVisited = document.getElementById('savedAddressLastVisited');
+savedAddressFreq.addEventListener('change',()=>{
+  savedAddressFreqCustomWrap.style.display = savedAddressFreq.value==='custom' ? 'block':'none';
+});
+function readFreqWeeks(){
+  if(savedAddressFreq.value==='custom'){
+    const n=parseInt(savedAddressFreqCustom.value,10);
+    return (n>=1&&n<=52)?n:null;
+  }
+  return savedAddressFreq.value?parseInt(savedAddressFreq.value,10):null;
+}
+function setFreqControls(weeks){
+  const presets=['1','2','4','6'];
+  if(weeks==null){savedAddressFreq.value='';savedAddressFreqCustomWrap.style.display='none';savedAddressFreqCustom.value='';return;}
+  if(presets.includes(String(weeks))){savedAddressFreq.value=String(weeks);savedAddressFreqCustomWrap.style.display='none';savedAddressFreqCustom.value='';}
+  else{savedAddressFreq.value='custom';savedAddressFreqCustomWrap.style.display='block';savedAddressFreqCustom.value=weeks;}
+}
 const savePreferredAddressBtn = document.getElementById('savePreferredAddressBtn');
 const clearPreferredAddressBtn = document.getElementById('clearPreferredAddressBtn');
 const preferredAddressMessage = document.getElementById('preferredAddressMessage');
@@ -2369,10 +2512,48 @@ function showLoginScreen(){
   appScreen.style.display='none';
   topUserEmail.textContent='';
 }
+
+/* ============ Auto-logout after inactivity ============ */
+const IDLE_LIMIT_MS   = 30*60*1000;   // 30 minutes total
+const IDLE_WARN_MS    = 28*60*1000;   // warn at 28 min (2-min grace)
+let idleWarnTimer=null, idleLogoutTimer=null;
+
+function isLoggedInView(){
+  return dashboardScreen.style.display!=='none' || appScreen.style.display!=='none';
+}
+function hideIdleToast(){document.getElementById('idleToast').classList.remove('show');}
+function showIdleToast(){document.getElementById('idleToast').classList.add('show');}
+
+async function doInactivityLogout(){
+  clearIdleTimers();hideIdleToast();
+  try{await supabaseClient.auth.signOut();}catch{}
+  showLoginScreen();
+  // brief notice on the login screen
+  try{showAuthMessage&&showAuthMessage('You were logged out after 30 minutes of inactivity.');}catch{}
+}
+function clearIdleTimers(){
+  if(idleWarnTimer)clearTimeout(idleWarnTimer);
+  if(idleLogoutTimer)clearTimeout(idleLogoutTimer);
+  idleWarnTimer=idleLogoutTimer=null;
+}
+function resetIdleTimer(){
+  if(!isLoggedInView()){clearIdleTimers();hideIdleToast();return;}
+  clearIdleTimers();hideIdleToast();
+  idleWarnTimer=setTimeout(showIdleToast, IDLE_WARN_MS);
+  idleLogoutTimer=setTimeout(doInactivityLogout, IDLE_LIMIT_MS);
+}
+// Any of these actions counts as activity
+['mousedown','keydown','touchstart','scroll','click'].forEach(ev=>{
+  document.addEventListener(ev, ()=>{ if(isLoggedInView()) resetIdleTimer(); }, {passive:true});
+});
+document.getElementById('idleStayBtn').onclick=()=>resetIdleTimer();
+// If the tab was hidden/asleep, re-check on return
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden) resetIdleTimer(); });
 function showDashboardScreen(user,profile){
   if(recoveryMode){showResetPasswordScreen();return;}
   loginScreen.style.display='none';
   resetPasswordScreen.style.display='none';
+  setTimeout(resetIdleTimer,0);
   appScreen.style.display='none';
   dashboardScreen.style.display='block';
 
@@ -3052,6 +3233,7 @@ async function optimize(){
       plans.push({day:i+1,weekday:wd,route,before,drive:after.drive,elapsed:after.elapsed,violations:after.violations});
     }
     selected=0;renderTabs();renderPlan();els.run.textContent=usedRealRouting?'Optimization completed using real road travel times.':'Optimization completed (estimated travel times).';window.setTimeout(offerArrivalEmails,300);
+    autoMarkRecurringVisited();
   }catch(e){els.run.className='message err';els.run.textContent=e.message;}
 }
 els.optimize.onclick=optimize;
@@ -3368,6 +3550,9 @@ function clearPreferredAddressForm(){
   savedAddressName.value='';
   savedAddressEmail.value='';
   savedAddressAddress.value='';
+  setFreqControls(null);
+  savedAddressWeekday.value='';
+  savedAddressLastVisited.value='';
   savePreferredAddressBtn.dataset.editId='';
   savePreferredAddressBtn.textContent='Save address';
 }
@@ -3392,6 +3577,9 @@ savePreferredAddressBtn.onclick=async()=>{
     name,
     address,
     email:email||null,
+    visit_frequency_weeks:readFreqWeeks(),
+    preferred_weekday:savedAddressWeekday.value!==''?parseInt(savedAddressWeekday.value,10):null,
+    last_visited:savedAddressLastVisited.value||null,
     updated_at:new Date().toISOString()
   };
 
@@ -3405,6 +3593,30 @@ savePreferredAddressBtn.onclick=async()=>{
   clearPreferredAddressForm();
   await loadPreferredAddresses();
 };
+
+const WEEKDAY_NAMES=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+function nextDueDate(item){
+  if(!item.visit_frequency_weeks)return null;
+  if(!item.last_visited)return new Date(); // never visited → due now
+  const last=new Date(item.last_visited+'T00:00:00');
+  const due=new Date(last);
+  due.setDate(due.getDate()+item.visit_frequency_weeks*7);
+  return due;
+}
+function isDue(item,within=new Date()){
+  const due=nextDueDate(item);
+  if(!due)return false;
+  return due<=within;
+}
+function recurBadge(item){
+  if(!item.visit_frequency_weeks)return '<span class="recur-badge none">One-time</span>';
+  const every=item.visit_frequency_weeks===1?'weekly':`every ${item.visit_frequency_weeks} wks`;
+  const wd=item.preferred_weekday!=null?` · ${WEEKDAY_NAMES[item.preferred_weekday]}`:'';
+  const due=nextDueDate(item);
+  const dueSoon=due&&due<=new Date();
+  const dueTxt=due?(dueSoon?'due now':`next ${due.toLocaleDateString()}`):'';
+  return `<span class="recur-badge${dueSoon?' due':''}">🔁 ${every}${wd} · ${dueTxt}</span>`;
+}
 
 async function loadPreferredAddresses(){
   const {data,error}=await supabaseClient
@@ -3428,6 +3640,7 @@ async function loadPreferredAddresses(){
       <h4>${esc(item.name)}</h4>
       <small>${esc(item.address)}</small>
       <small>${esc(item.email||'No email saved')}</small>
+      <div>${recurBadge(item)}</div>
       <div class="address-card-actions">
         <button onclick="addPreferredAddressToRoute('${item.id}')">Add to route</button>
         <button class="secondary" onclick="editPreferredAddress('${item.id}')">Edit</button>
@@ -3443,6 +3656,9 @@ window.editPreferredAddress=async id=>{
   savedAddressName.value=data.name;
   savedAddressEmail.value=data.email||'';
   savedAddressAddress.value=data.address;
+  setFreqControls(data.visit_frequency_weeks??null);
+  savedAddressWeekday.value=data.preferred_weekday!=null?String(data.preferred_weekday):'';
+  savedAddressLastVisited.value=data.last_visited||'';
   savePreferredAddressBtn.dataset.editId=id;
   savePreferredAddressBtn.textContent='Update address';
 };
@@ -3500,6 +3716,7 @@ function showDashboardTab(tabName){
     projects:savedProjectsView,
     addresses:preferredAddressesView,
     csv:importCsvView,
+    recurring:recurringView,
     profile:profileView
   };
   const buttons={
@@ -3507,6 +3724,7 @@ function showDashboardTab(tabName){
     projects:navSavedProjects,
     addresses:navPreferredAddresses,
     csv:navImportCsv,
+    recurring:navRecurring,
     profile:navProfile
   };
 
@@ -3582,6 +3800,150 @@ document.getElementById('useDefaultDepotBtn').onclick=()=>applyDefaultDepot(true
 // fix: second "Create New Route" button previously shared an id and did nothing
 document.getElementById('newRouteBtn2')?.addEventListener('click',()=>newRouteBtn.onclick());
 document.getElementById('launchImportCsv').onclick=()=>showDashboardTab('csv');
+navRecurring.onclick=()=>{showDashboardTab('recurring');loadRecurring();};
+
+/* ============ Recurring Schedule tab ============ */
+let recurringCustomers=[];
+let calMonth=new Date();calMonth.setDate(1);
+
+async function loadRecurring(){
+  const uid=await currentUserId();
+  if(!uid)return;
+  const {data,error}=await supabaseClient
+    .from('preferred_addresses').select('*').eq('user_id',uid)
+    .not('visit_frequency_weeks','is',null);
+  recurringCustomers = error? [] : (data||[]);
+  renderDueList();
+  renderCalendar();
+}
+
+function renderDueList(){
+  const days=parseInt(document.getElementById('dueWindow').value,10);
+  const within=new Date();within.setDate(within.getDate()+days);within.setHours(23,59,59,999);
+  const due=recurringCustomers
+    .map(c=>({c,due:nextDueDate(c)}))
+    .filter(x=>x.due&&x.due<=within)
+    .sort((a,b)=>a.due-b.due);
+  const list=document.getElementById('dueList');
+  const status=document.getElementById('dueStatus');
+  if(!recurringCustomers.length){
+    list.innerHTML='';
+    status.style.display='block';
+    status.innerHTML='No recurring customers yet. Set a visit frequency on a customer in <b>Preferred Addresses</b> to see them here.';
+    return;
+  }
+  status.style.display='none';
+  if(!due.length){list.innerHTML='<div class="note" style="display:block">Nobody due in this window. 🎉</div>';return;}
+  list.innerHTML=due.map(({c,due})=>{
+    const overdue=due<=new Date();
+    return `<div class="due-row">
+      <div class="who"><b>${esc(c.name)}</b><small>${esc(c.address)}</small></div>
+      <div class="acts">
+        <span class="recur-badge${overdue?' due':''}">${overdue?'due now':'due '+due.toLocaleDateString()}</span>
+        <button class="secondary" onclick="markVisitedToday('${c.id}')" title="Mark visited today">✓ Visited</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+document.getElementById('dueWindow').onchange=renderDueList;
+
+// After optimizing, mark any recurring customers on the route as visited today (auto default).
+async function autoMarkRecurringVisited(){
+  try{
+    const uid=await currentUserId();if(!uid)return;
+    const names=[...new Set(stops.map(s=>s.contactName).filter(Boolean))];
+    if(!names.length)return;
+    const {data}=await supabaseClient.from('preferred_addresses')
+      .select('id,name,visit_frequency_weeks').eq('user_id',uid).not('visit_frequency_weeks','is',null);
+    if(!data||!data.length)return;
+    const today=new Date().toISOString().slice(0,10);
+    const toUpdate=data.filter(c=>names.includes(c.name)).map(c=>c.id);
+    for(const id of toUpdate){
+      await supabaseClient.from('preferred_addresses')
+        .update({last_visited:today,updated_at:new Date().toISOString()})
+        .eq('id',id).eq('user_id',uid);
+    }
+  }catch{}
+}
+
+window.markVisitedToday=async id=>{
+  const today=new Date().toISOString().slice(0,10);
+  const {error}=await supabaseClient.from('preferred_addresses')
+    .update({last_visited:today,updated_at:new Date().toISOString()})
+    .eq('id',id).eq('user_id',await currentUserId());
+  if(error)return alert(error.message);
+  await loadRecurring();
+};
+
+// Build a route from everyone currently due (goes to the planner)
+document.getElementById('buildDueRouteBtn').onclick=async()=>{
+  const days=parseInt(document.getElementById('dueWindow').value,10);
+  const within=new Date();within.setDate(within.getDate()+days);within.setHours(23,59,59,999);
+  const due=recurringCustomers.filter(c=>{const d=nextDueDate(c);return d&&d<=within;});
+  if(!due.length)return alert('Nobody is due in the selected window.');
+  const btn=document.getElementById('buildDueRouteBtn');
+  btn.disabled=true;
+  const status=document.getElementById('dueStatus');
+  status.style.display='block';
+  // switch to planner and add them
+  await newRouteBtn.onclick();
+  const delay=CONFIG.GEOAPIFY_API_KEY?250:1100;
+  let ok=0;const failed=[];
+  for(let i=0;i<due.length;i++){
+    status.textContent=`Adding ${i+1} of ${due.length}…`;
+    try{
+      const geo=await geocodeSavedAddress(due[i].address);
+      wsStopFromSaved(due[i],geo);ok++;renderPoints();
+    }catch{failed.push(due[i].name);}
+    if(i<due.length-1)await new Promise(r=>setTimeout(r,delay));
+  }
+  invalidate();renderPoints();updateCapacity();
+  const pts=[...(depot?[[depot.lat,depot.lon]]:[]),...stops.map(s=>[s.lat,s.lon])];
+  if(pts.length)map.fitBounds(pts,{padding:[25,25]});
+  btn.disabled=false;
+  els.run&&(els.run.style.display='block',els.run.className='message ok',
+    els.run.textContent=`Added ${ok} due customer${ok===1?'':'s'}${failed.length?`, ${failed.length} could not be located`:''}. Set your starting point and Optimize.`);
+};
+
+function renderCalendar(){
+  const grid=document.getElementById('calGrid');
+  const label=document.getElementById('calLabel');
+  const y=calMonth.getFullYear(),m=calMonth.getMonth();
+  label.textContent=calMonth.toLocaleString(undefined,{month:'long',year:'numeric'});
+  // map upcoming visit dates (next 90 days) per day-key
+  const visits={};
+  recurringCustomers.forEach(c=>{
+    let d=nextDueDate(c);if(!d)return;
+    const horizon=new Date();horizon.setDate(horizon.getDate()+120);
+    let guard=0;
+    while(d<=horizon&&guard<60){
+      const key=d.toISOString().slice(0,10);
+      (visits[key]=visits[key]||[]).push(c.name);
+      d=new Date(d);d.setDate(d.getDate()+c.visit_frequency_weeks*7);
+      guard++;
+    }
+  });
+  const first=new Date(y,m,1);
+  const startDow=first.getDay();
+  const daysInMonth=new Date(y,m+1,0).getDate();
+  let html=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d=>`<div class="dow">${d}</div>`).join('');
+  const todayKey=new Date().toISOString().slice(0,10);
+  for(let i=0;i<startDow;i++)html+='<div class="cell other"></div>';
+  for(let day=1;day<=daysInMonth;day++){
+    const dateKey=new Date(y,m,day).toISOString().slice(0,10);
+    const v=visits[dateKey]||[];
+    const isToday=dateKey===todayKey;
+    html+=`<div class="cell"${isToday?' style="outline:2px solid #38bdf8"':''}>
+      <div class="dn">${day}</div>
+      ${v.slice(0,3).map(n=>`<span class="visit" title="${esc(n)}">${esc(n)}</span>`).join('')}
+      ${v.length>3?`<span class="visit">+${v.length-3} more</span>`:''}
+    </div>`;
+  }
+  grid.innerHTML=html;
+}
+document.getElementById('calPrev').onclick=()=>{calMonth.setMonth(calMonth.getMonth()-1);renderCalendar();};
+document.getElementById('calNext').onclick=()=>{calMonth.setMonth(calMonth.getMonth()+1);renderCalendar();};
 
 /* ============ Import CSV view: save customers as preferred addresses ============ */
 const csvViewText=$('csvViewText'),csvViewFile=$('csvViewFile'),csvViewFileBtn=$('csvViewFileBtn'),
@@ -3978,7 +4340,7 @@ saveProfileBtn.onclick=async()=>{
   }catch(e){profileMessage.textContent=e?.message||'Could not save preferences.'}
   finally{saveProfileBtn.disabled=false;saveProfileBtn.textContent='Save Preferences'}
 };
-dashboardLogoutBtn.onclick=async()=>{await supabaseClient.auth.signOut();showLoginScreen();};
+dashboardLogoutBtn.onclick=async()=>{clearIdleTimers();hideIdleToast();await supabaseClient.auth.signOut();showLoginScreen();};
 
 
 googleLoginBtn.onclick=async()=>{

@@ -1464,11 +1464,12 @@ body{
 .empty-state button{width:auto;padding:9px 16px;font-size:13px}
 :root[data-theme="light"] .empty-state h4{color:#16243a}
 /* ============ Inactivity warning toast ============ */
-.idle-toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(120%);z-index:4000;
+.idle-toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(200%);z-index:4000;
   max-width:360px;width:calc(100% - 40px);background:var(--card,#0f1b2d);border:1px solid #d97706;
   border-radius:14px;padding:14px 16px;box-shadow:0 20px 60px rgba(0,0,0,.4);
-  transition:transform .3s ease;display:flex;gap:12px;align-items:center}
-.idle-toast.show{transform:translateX(-50%) translateY(0)}
+  transition:transform .3s ease,opacity .3s ease,visibility .3s;display:flex;gap:12px;align-items:center;
+  opacity:0;visibility:hidden;pointer-events:none}
+.idle-toast.show{transform:translateX(-50%) translateY(0);opacity:1;visibility:visible;pointer-events:auto}
 .idle-toast p{margin:0;font-size:13px;color:var(--text,#edf4ff);line-height:1.4;flex:1}
 .idle-toast button{width:auto;padding:8px 14px;font-size:13px}
 :root[data-theme="light"] .idle-toast{background:#fff;border:1px solid #d97706}
@@ -3653,12 +3654,13 @@ document.getElementById('calPromptAdd').onclick=async()=>{
   const seriesId = repeatWeeks>0 ? (crypto.randomUUID?crypto.randomUUID():String(Date.now())) : null;
   const projName=(els.projectName.value||'Route').trim();
 
-  // Build one row per plan-day, per repeated week.
+  // Only schedule days that actually have stops (drop empty day-slots).
+  const activePlans=plans.filter(p=>p.route&&p.route.length);
+  if(!activePlans.length){status.style.display='block';status.textContent='This plan has no stops to schedule.';return;}
   const rows=[];
   for(let w=0; w<=repeatWeeks; w++){
-    plans.forEach((p,di)=>{
+    activePlans.forEach((p,di)=>{
       const dayDate=new Date(start);
-      // p.weekday is the weekday of this plan day; offset from the plan's first weekday
       const dayOffset=(p.weekday - (+els.weekday.value) + 7)%7;
       dayDate.setDate(start.getDate() + w*7 + dayOffset);
       rows.push({
@@ -4097,6 +4099,7 @@ navRecurring.onclick=()=>{showDashboardTab('recurring');loadCalendar();};
 /* ============ Built-in calendar (scheduled_routes) ============ */
 let calMonth=new Date();calMonth.setDate(1);
 let scheduledRoutes=[]; // rows from scheduled_routes for the visible range
+let calSelectedDate=null; // yyyy-mm-dd currently opened
 
 async function loadCalendar(){
   const uid=await currentUserId();
@@ -4143,7 +4146,10 @@ function renderCalendarGrid(){
     const dateKey=new Date(y,m,day).toISOString().slice(0,10);
     const rs=byDate[dateKey]||[];
     const isToday=dateKey===todayKey;
-    html+=`<div class="cell" style="cursor:pointer${isToday?';outline:2px solid #38bdf8':''}" onclick="openCalDay('${dateKey}')">
+    const isSel=dateKey===calSelectedDate;
+    const ind = isSel ? ';outline:3px solid #22d3a6;background:rgba(34,211,166,.10)'
+                      : (isToday ? ';outline:2px solid #38bdf8':'');
+    html+=`<div class="cell" style="cursor:pointer${ind}" onclick="openCalDay('${dateKey}')">
       <div class="dn">${day}</div>
       ${rs.slice(0,3).map(r=>`<span class="visit" title="${esc(r.title||'Route')}">${esc(r.title||'Route')}</span>`).join('')}
       ${rs.length>3?`<span class="visit">+${rs.length-3} more</span>`:''}
@@ -4153,6 +4159,8 @@ function renderCalendarGrid(){
 }
 
 window.openCalDay=dateKey=>{
+  calSelectedDate=dateKey;
+  renderCalendarGrid();
   const detail=document.getElementById('calDayDetail');
   const title=document.getElementById('calDayTitle');
   const body=document.getElementById('calDayBody');

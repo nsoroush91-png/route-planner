@@ -1629,7 +1629,7 @@ body{
         <button id="navSavedProjects">📁 <span class="label">Saved Projects</span></button>
         <button id="navPreferredAddresses">📍 <span class="label">Preferred Addresses</span></button>
         <button id="navImportCsv">📄 <span class="label">Import CSV</span></button>
-        <button id="navRecurring">🔁 <span class="label">Recurring Schedule</span></button>
+        <button id="navRecurring">📅 <span class="label">Calendar</span></button>
         <button id="navProfile">👤 <span class="label">Profile</span></button>
       </nav>
       <div class="rr-sidebar-bottom">
@@ -1773,40 +1773,29 @@ body{
         <section id="recurringView" class="app-view">
           <div class="rr-tab-hero">
             <div>
-              <div class="kicker">Recurring visits</div>
-              <h1>Recurring Schedule</h1>
-              <p>See who's due for a visit, build this week's route in one click, and view your upcoming visits on the calendar.</p>
+              <div class="kicker">Your schedule</div>
+              <h1>Calendar</h1>
+              <p>Every route you've scheduled, laid out by date. Optimize a route in the planner and choose "Add to calendar" to see it here.</p>
             </div>
-          </div>
-
-          <div class="card" style="padding:20px;margin-bottom:16px">
-            <h3 style="margin-top:0">Due for a visit</h3>
-            <div class="due-toolbar">
-              <label style="margin:0">Show due within
-                <select id="dueWindow" style="width:auto;display:inline-block;margin-left:6px">
-                  <option value="0">today</option>
-                  <option value="7" selected>7 days</option>
-                  <option value="14">14 days</option>
-                  <option value="30">30 days</option>
-                </select>
-              </label>
-              <span class="grow"></span>
-              <button id="buildDueRouteBtn" class="green" type="button">🗺️ Build route from all due</button>
-            </div>
-            <div id="dueStatus" class="note" style="display:none"></div>
-            <div id="dueList" class="due-list"></div>
           </div>
 
           <div class="card" style="padding:20px">
             <div class="cal-head">
-              <h3 style="margin:0">Upcoming visits</h3>
+              <h3 style="margin:0">Scheduled routes</h3>
               <div>
                 <button class="secondary" id="calPrev" type="button">‹</button>
                 <strong id="calLabel" style="margin:0 8px"></strong>
                 <button class="secondary" id="calNext" type="button">›</button>
+                <button class="secondary" id="calToday" type="button" style="margin-left:6px">Today</button>
               </div>
             </div>
+            <div id="calStatus" class="note" style="display:none"></div>
             <div class="cal" id="calGrid"></div>
+          </div>
+
+          <div class="card" style="padding:20px;margin-top:16px" id="calDayDetail" style="display:none">
+            <h3 id="calDayTitle" style="margin-top:0">Select a day</h3>
+            <div id="calDayBody"></div>
           </div>
         </section>
         <section id="importCsvView" class="app-view">
@@ -2069,6 +2058,27 @@ body{
 <div class="idle-toast" id="idleToast">
   <p id="idleToastMsg">You'll be logged out soon due to inactivity.</p>
   <button class="green" id="idleStayBtn" type="button">Stay logged in</button>
+</div>
+<div class="rr-confirm-overlay" id="calPromptOverlay">
+  <div class="rr-confirm" style="max-width:440px">
+    <h3>Add this route to your calendar?</h3>
+    <p style="margin-bottom:14px">Your optimized plan starts on <b id="calPromptStart"></b>. Each day is placed on its weekday.</p>
+    <label style="margin:0 0 6px">Repeat this weekly plan for:</label>
+    <select id="calRepeat" style="margin-bottom:8px">
+      <option value="0">Just this week</option>
+      <option value="1">1 more week</option>
+      <option value="4">1 month (4 weeks)</option>
+      <option value="26">6 months (26 weeks)</option>
+      <option value="52">1 year (52 weeks)</option>
+      <option value="custom">Custom number of weeks…</option>
+    </select>
+    <input id="calRepeatCustom" type="number" min="1" max="104" placeholder="Weeks to repeat" style="display:none;margin-bottom:8px">
+    <div id="calPromptStatus" class="note" style="display:none"></div>
+    <div class="rr-confirm-actions" style="margin-top:14px">
+      <button class="secondary" id="calPromptSkip">Not now</button>
+      <button class="green" id="calPromptAdd">Add to calendar</button>
+    </div>
+  </div>
 </div>
 <div class="rr-confirm-overlay" id="rrConfirmOverlay">
   <div class="rr-confirm">
@@ -3435,8 +3445,7 @@ async function optimize(){
       const after=cost(route,start,service,wd);
       plans.push({day:i+1,weekday:wd,route,before,drive:after.drive,elapsed:after.elapsed,violations:after.violations});
     }
-    selected=0;renderTabs();renderPlan();els.run.textContent=usedRealRouting?'Optimization completed using real road travel times.':'Optimization completed (estimated travel times).';window.setTimeout(offerArrivalEmails,300);
-    autoMarkRecurringVisited();
+    selected=0;renderTabs();renderPlan();els.run.textContent=usedRealRouting?'Optimization completed using real road travel times.':'Optimization completed (estimated travel times).';window.setTimeout(offerArrivalEmails,300);window.setTimeout(offerAddToCalendar,600);
   }catch(e){els.run.className='message err';els.run.textContent=e.message;}
 }
 els.optimize.onclick=optimize;
@@ -3610,6 +3619,78 @@ Thank you.`;
 
   return {to:stop.contactEmail,subject,body};
 }
+
+/* ============ Add-to-calendar prompt + save ============ */
+function planStartDate(){
+  // First route day's weekday = els.weekday; find the next such weekday from today (inclusive).
+  const firstWd=+els.weekday.value;
+  const d=new Date();d.setHours(0,0,0,0);
+  for(let i=0;i<7;i++){ if(d.getDay()===firstWd) return d; d.setDate(d.getDate()+1); }
+  return new Date();
+}
+function offerAddToCalendar(){
+  if(!plans.length)return;
+  const start=planStartDate();
+  document.getElementById('calPromptStart').textContent=start.toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'});
+  document.getElementById('calRepeat').value='0';
+  document.getElementById('calRepeatCustom').style.display='none';
+  document.getElementById('calPromptStatus').style.display='none';
+  document.getElementById('calPromptOverlay').classList.add('show');
+}
+document.getElementById('calRepeat').addEventListener('change',e=>{
+  document.getElementById('calRepeatCustom').style.display = e.target.value==='custom'?'block':'none';
+});
+document.getElementById('calPromptSkip').onclick=()=>document.getElementById('calPromptOverlay').classList.remove('show');
+document.getElementById('calPromptAdd').onclick=async()=>{
+  const uid=await currentUserId();
+  const status=document.getElementById('calPromptStatus');
+  if(!uid){status.style.display='block';status.textContent='Please log in first.';return;}
+  let repeatWeeks=document.getElementById('calRepeat').value;
+  repeatWeeks = repeatWeeks==='custom' ? (parseInt(document.getElementById('calRepeatCustom').value,10)||0) : parseInt(repeatWeeks,10);
+  if(repeatWeeks<0||repeatWeeks>104)repeatWeeks=0;
+
+  const start=planStartDate();
+  const seriesId = repeatWeeks>0 ? (crypto.randomUUID?crypto.randomUUID():String(Date.now())) : null;
+  const projName=(els.projectName.value||'Route').trim();
+
+  // Build one row per plan-day, per repeated week.
+  const rows=[];
+  for(let w=0; w<=repeatWeeks; w++){
+    plans.forEach((p,di)=>{
+      const dayDate=new Date(start);
+      // p.weekday is the weekday of this plan day; offset from the plan's first weekday
+      const dayOffset=(p.weekday - (+els.weekday.value) + 7)%7;
+      dayDate.setDate(start.getDate() + w*7 + dayOffset);
+      rows.push({
+        user_id:uid,
+        scheduled_date:dayDate.toISOString().slice(0,10),
+        title:`${projName} — Day ${di+1} (${dayName(p.weekday)})`,
+        day_data:{
+          depot:depot?{lat:depot.lat,lon:depot.lon,address:depot.address}:null,
+          stops:p.route.map(s=>({id:s.id,lat:s.lat,lon:s.lon,address:s.address,serviceMinutes:s.serviceMinutes,earliest:s.earliest,latest:s.latest,requiredWeekday:s.requiredWeekday,priority:s.priority,contactName:s.contactName||'',contactEmail:s.contactEmail||''})),
+          settings:{days:els.days.value,perDay:els.perDay.value,weekday:els.weekday.value,start:els.start.value,service:els.service.value}
+        },
+        series_id:seriesId
+      });
+    });
+  }
+  document.getElementById('calPromptAdd').disabled=true;
+  status.style.display='block';status.textContent=`Saving ${rows.length} day(s) to your calendar…`;
+  try{
+    for(let i=0;i<rows.length;i+=100){
+      const {error}=await supabaseClient.from('scheduled_routes').insert(rows.slice(i,i+100));
+      if(error)throw error;
+    }
+    status.textContent='✓ Added to your calendar.';
+    setTimeout(()=>{document.getElementById('calPromptOverlay').classList.remove('show');},1100);
+  }catch(err){
+    status.textContent = /scheduled_routes|relation|does not exist/i.test(err.message||'')
+      ? 'Calendar table missing — run calendar-schedule.sql in Supabase first.'
+      : 'Could not save: '+(err.message||err);
+  }finally{
+    document.getElementById('calPromptAdd').disabled=false;
+  }
+};
 
 function offerArrivalEmails(){
   if(currentBusinessPreferences && !currentBusinessPreferences.send_arrival_emails)return;
@@ -4011,130 +4092,47 @@ document.getElementById('useDefaultDepotBtn').onclick=()=>applyDefaultDepot(true
 // fix: second "Create New Route" button previously shared an id and did nothing
 document.getElementById('newRouteBtn2')?.addEventListener('click',()=>newRouteBtn.onclick());
 document.getElementById('launchImportCsv').onclick=()=>showDashboardTab('csv');
-navRecurring.onclick=()=>{showDashboardTab('recurring');loadRecurring();};
+navRecurring.onclick=()=>{showDashboardTab('recurring');loadCalendar();};
 
-/* ============ Recurring Schedule tab ============ */
-let recurringCustomers=[];
+/* ============ Built-in calendar (scheduled_routes) ============ */
 let calMonth=new Date();calMonth.setDate(1);
+let scheduledRoutes=[]; // rows from scheduled_routes for the visible range
 
-async function loadRecurring(){
+async function loadCalendar(){
   const uid=await currentUserId();
-  if(!uid)return;
-  const {data,error}=await supabaseClient
-    .from('preferred_addresses').select('*').eq('user_id',uid)
-    .not('visit_frequency_weeks','is',null);
-  recurringCustomers = error? [] : (data||[]);
-  renderDueList();
-  renderCalendar();
-}
-
-function renderDueList(){
-  const days=parseInt(document.getElementById('dueWindow').value,10);
-  const within=new Date();within.setDate(within.getDate()+days);within.setHours(23,59,59,999);
-  const due=recurringCustomers
-    .map(c=>({c,due:nextDueDate(c)}))
-    .filter(x=>x.due&&x.due<=within)
-    .sort((a,b)=>a.due-b.due);
-  const list=document.getElementById('dueList');
-  const status=document.getElementById('dueStatus');
-  if(!recurringCustomers.length){
-    list.innerHTML='';
+  const status=document.getElementById('calStatus');
+  if(!uid){scheduledRoutes=[];renderCalendarGrid();return;}
+  // load a wide window around the visible month
+  const from=new Date(calMonth.getFullYear(),calMonth.getMonth()-1,1);
+  const to=new Date(calMonth.getFullYear(),calMonth.getMonth()+2,0);
+  const {data,error}=await supabaseClient.from('scheduled_routes')
+    .select('*').eq('user_id',uid)
+    .gte('scheduled_date',from.toISOString().slice(0,10))
+    .lte('scheduled_date',to.toISOString().slice(0,10))
+    .order('scheduled_date',{ascending:true});
+  if(error){
+    scheduledRoutes=[];
     status.style.display='block';
-    status.innerHTML='No recurring customers yet. Set a visit frequency on a customer in <b>Preferred Addresses</b> to see them here.';
-    return;
+    status.innerHTML='Could not load your calendar. If this is the first time, run <b>calendar-schedule.sql</b> in Supabase.';
+  }else{
+    status.style.display='none';
+    scheduledRoutes=data||[];
   }
-  status.style.display='none';
-  if(!due.length){list.innerHTML='<div class="note" style="display:block">Nobody due in this window. 🎉</div>';return;}
-  list.innerHTML=due.map(({c,due})=>{
-    const overdue=due<=new Date();
-    return `<div class="due-row">
-      <div class="who"><b>${esc(c.name)}</b><small>${esc(c.address)}</small></div>
-      <div class="acts">
-        <span class="recur-badge${overdue?' due':''}">${overdue?'due now':'due '+due.toLocaleDateString()}</span>
-        <button class="secondary" onclick="markVisitedToday('${c.id}')" title="Mark visited today">✓ Visited</button>
-      </div>
-    </div>`;
-  }).join('');
+  renderCalendarGrid();
 }
 
-document.getElementById('dueWindow').onchange=renderDueList;
-
-// After optimizing, mark any recurring customers on the route as visited today (auto default).
-async function autoMarkRecurringVisited(){
-  try{
-    const uid=await currentUserId();if(!uid)return;
-    const names=[...new Set(stops.map(s=>s.contactName).filter(Boolean))];
-    if(!names.length)return;
-    const {data}=await supabaseClient.from('preferred_addresses')
-      .select('id,name,visit_frequency_weeks').eq('user_id',uid).not('visit_frequency_weeks','is',null);
-    if(!data||!data.length)return;
-    const today=new Date().toISOString().slice(0,10);
-    const toUpdate=data.filter(c=>names.includes(c.name)).map(c=>c.id);
-    for(const id of toUpdate){
-      await supabaseClient.from('preferred_addresses')
-        .update({last_visited:today,updated_at:new Date().toISOString()})
-        .eq('id',id).eq('user_id',uid);
-    }
-  }catch{}
+function routesByDate(){
+  const map={};
+  scheduledRoutes.forEach(r=>{(map[r.scheduled_date]=map[r.scheduled_date]||[]).push(r);});
+  return map;
 }
 
-window.markVisitedToday=async id=>{
-  const today=new Date().toISOString().slice(0,10);
-  const {error}=await supabaseClient.from('preferred_addresses')
-    .update({last_visited:today,updated_at:new Date().toISOString()})
-    .eq('id',id).eq('user_id',await currentUserId());
-  if(error)return alert(error.message);
-  await loadRecurring();
-};
-
-// Build a route from everyone currently due (goes to the planner)
-document.getElementById('buildDueRouteBtn').onclick=async()=>{
-  const days=parseInt(document.getElementById('dueWindow').value,10);
-  const within=new Date();within.setDate(within.getDate()+days);within.setHours(23,59,59,999);
-  const due=recurringCustomers.filter(c=>{const d=nextDueDate(c);return d&&d<=within;});
-  if(!due.length)return alert('Nobody is due in the selected window.');
-  const btn=document.getElementById('buildDueRouteBtn');
-  btn.disabled=true;
-  const status=document.getElementById('dueStatus');
-  status.style.display='block';
-  // switch to planner and add them
-  await newRouteBtn.onclick();
-  const delay=CONFIG.GEOAPIFY_API_KEY?250:1100;
-  let ok=0;const failed=[];
-  for(let i=0;i<due.length;i++){
-    status.textContent=`Adding ${i+1} of ${due.length}…`;
-    try{
-      const geo=await geocodeSavedAddress(due[i].address);
-      wsStopFromSaved(due[i],geo);ok++;renderPoints();
-    }catch{failed.push(due[i].name);}
-    if(i<due.length-1)await new Promise(r=>setTimeout(r,delay));
-  }
-  invalidate();renderPoints();updateCapacity();
-  const pts=[...(depot?[[depot.lat,depot.lon]]:[]),...stops.map(s=>[s.lat,s.lon])];
-  if(pts.length)map.fitBounds(pts,{padding:[25,25]});
-  btn.disabled=false;
-  els.run&&(els.run.style.display='block',els.run.className='message ok',
-    els.run.textContent=`Added ${ok} due customer${ok===1?'':'s'}${failed.length?`, ${failed.length} could not be located`:''}. Set your starting point and Optimize.`);
-};
-
-function renderCalendar(){
+function renderCalendarGrid(){
   const grid=document.getElementById('calGrid');
   const label=document.getElementById('calLabel');
   const y=calMonth.getFullYear(),m=calMonth.getMonth();
   label.textContent=calMonth.toLocaleString(undefined,{month:'long',year:'numeric'});
-  // map upcoming visit dates (next 90 days) per day-key
-  const visits={};
-  recurringCustomers.forEach(c=>{
-    let d=nextDueDate(c);if(!d)return;
-    const horizon=new Date();horizon.setDate(horizon.getDate()+120);
-    let guard=0;
-    while(d<=horizon&&guard<60){
-      const key=d.toISOString().slice(0,10);
-      (visits[key]=visits[key]||[]).push(c.name);
-      d=new Date(d);d.setDate(d.getDate()+c.visit_frequency_weeks*7);
-      guard++;
-    }
-  });
+  const byDate=routesByDate();
   const first=new Date(y,m,1);
   const startDow=first.getDay();
   const daysInMonth=new Date(y,m+1,0).getDate();
@@ -4143,18 +4141,75 @@ function renderCalendar(){
   for(let i=0;i<startDow;i++)html+='<div class="cell other"></div>';
   for(let day=1;day<=daysInMonth;day++){
     const dateKey=new Date(y,m,day).toISOString().slice(0,10);
-    const v=visits[dateKey]||[];
+    const rs=byDate[dateKey]||[];
     const isToday=dateKey===todayKey;
-    html+=`<div class="cell"${isToday?' style="outline:2px solid #38bdf8"':''}>
+    html+=`<div class="cell" style="cursor:pointer${isToday?';outline:2px solid #38bdf8':''}" onclick="openCalDay('${dateKey}')">
       <div class="dn">${day}</div>
-      ${v.slice(0,3).map(n=>`<span class="visit" title="${esc(n)}">${esc(n)}</span>`).join('')}
-      ${v.length>3?`<span class="visit">+${v.length-3} more</span>`:''}
+      ${rs.slice(0,3).map(r=>`<span class="visit" title="${esc(r.title||'Route')}">${esc(r.title||'Route')}</span>`).join('')}
+      ${rs.length>3?`<span class="visit">+${rs.length-3} more</span>`:''}
     </div>`;
   }
   grid.innerHTML=html;
 }
-document.getElementById('calPrev').onclick=()=>{calMonth.setMonth(calMonth.getMonth()-1);renderCalendar();};
-document.getElementById('calNext').onclick=()=>{calMonth.setMonth(calMonth.getMonth()+1);renderCalendar();};
+
+window.openCalDay=dateKey=>{
+  const detail=document.getElementById('calDayDetail');
+  const title=document.getElementById('calDayTitle');
+  const body=document.getElementById('calDayBody');
+  const rs=routesByDate()[dateKey]||[];
+  const d=new Date(dateKey+'T00:00:00');
+  title.textContent=d.toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+  detail.style.display='block';
+  if(!rs.length){body.innerHTML='<div class="note" style="display:block">No routes scheduled this day.</div>';return;}
+  body.innerHTML=rs.map(r=>{
+    const stops=(r.day_data&&r.day_data.stops)||[];
+    return `<div class="due-row" style="align-items:flex-start">
+      <div class="who">
+        <b>${esc(r.title||'Route')}</b>
+        <small>${stops.length} stop${stops.length===1?'':'s'}${r.series_id?' · part of a repeating plan':''}</small>
+        <div style="margin-top:6px;font-size:12px;color:var(--muted)">${stops.slice(0,8).map(s=>esc(s.contactName||s.address.split(',')[0])).join(' · ')}${stops.length>8?' …':''}</div>
+      </div>
+      <div class="acts">
+        <button class="secondary" onclick="loadScheduledIntoPlanner('${r.id}')" title="Open in planner">Open</button>
+        <button class="rm" onclick="deleteScheduled('${r.id}',${r.series_id?`'${r.series_id}'`:'null'})">Delete</button>
+      </div>
+    </div>`;
+  }).join('');
+  detail.scrollIntoView({behavior:'smooth',block:'nearest'});
+};
+
+window.deleteScheduled=async(id,seriesId)=>{
+  let scope='one';
+  if(seriesId){
+    scope=(await rrConfirm('This route is part of a repeating plan. Delete just this day, or the whole series?',
+      {title:'Delete route',okText:'Just this day',danger:true}))?'one':'series-cancelled';
+    if(scope==='series-cancelled'){
+      // second question: whole series
+      if(await rrConfirm('Delete the ENTIRE repeating series instead?',{title:'Delete series',okText:'Delete all',danger:true}))scope='series';
+      else return;
+    }
+  }else{
+    if(!(await rrConfirm('Delete this scheduled route?',{title:'Delete route',okText:'Delete',danger:true})))return;
+  }
+  const uid=await currentUserId();
+  let q=supabaseClient.from('scheduled_routes').delete().eq('user_id',uid);
+  q = scope==='series' ? q.eq('series_id',seriesId) : q.eq('id',id);
+  const {error}=await q;
+  if(error)return alert(error.message);
+  await loadCalendar();
+  document.getElementById('calDayDetail').style.display='none';
+};
+
+window.loadScheduledIntoPlanner=async id=>{
+  const r=scheduledRoutes.find(x=>x.id===id);
+  if(!r)return;
+  await newRouteBtn.onclick();          // opens planner (applies default depot)
+  await restoreProject({depot:r.day_data.depot||(depot?{lat:depot.lat,lon:depot.lon,address:depot.address}:null),stops:r.day_data.stops||[],settings:r.day_data.settings||{}});
+};
+
+document.getElementById('calPrev').onclick=()=>{calMonth.setMonth(calMonth.getMonth()-1);loadCalendar();};
+document.getElementById('calNext').onclick=()=>{calMonth.setMonth(calMonth.getMonth()+1);loadCalendar();};
+document.getElementById('calToday').onclick=()=>{calMonth=new Date();calMonth.setDate(1);loadCalendar();};
 
 /* ============ Import CSV view: save customers as preferred addresses ============ */
 const csvViewText=$('csvViewText'),csvViewFile=$('csvViewFile'),csvViewFileBtn=$('csvViewFileBtn'),
@@ -4541,7 +4596,12 @@ async function goToDashboardHome(){
   loadBusinessPreferences(user).catch(()=>{});
 }
 backDashboardBtn.onclick=goToDashboardHome;
-document.getElementById('rrSidebarLogo').onclick=()=>{ if(appScreen.style.display!=='none'){ goToDashboardHome(); } else { showDashboardTab('new'); } };
+document.getElementById('rrSidebarLogo').onclick=()=>{
+  if(appScreen.style.display!=='none'){ goToDashboardHome(); }
+  else { showDashboardTab('new'); }
+  // always scroll the page back to the top so the logo reliably 'goes home'
+  try{ const c=document.querySelector('.rr-content'); (c||window).scrollTo({top:0,behavior:'smooth'}); window.scrollTo({top:0,behavior:'smooth'}); }catch{ window.scrollTo(0,0); }
+};
 saveProfileBtn.onclick=async()=>{
   const {data}=await supabaseClient.auth.getSession();const user=data.session?.user;if(!user)return;
   saveProfileBtn.disabled=true;saveProfileBtn.textContent='Saving...';profileMessage.textContent='Saving...';

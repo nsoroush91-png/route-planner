@@ -1519,6 +1519,27 @@ body{
 .stops-empty{padding:22px;text-align:center;color:var(--muted,#9fb0c7);border:1px dashed var(--line,#2a4059);border-radius:12px}
 :root[data-theme="light"] .stops-table .rm{background:#fdecef;color:#b4344f;border:1px solid #f2c9d3}
 :root[data-theme="light"] .stops-table .revisit-tag{background:#efe9fd;color:#6d4bd0;border:1px solid #d9ccf6}
+/* ============ Persistent sidebar across planner ============ */
+body.planner-open #dashboardScreen{display:block!important}
+body.planner-open #dashboardScreen .rr-main{display:none} /* hide dashboard content, keep sidebar */
+body.planner-open #appScreen{
+  position:fixed;top:0;right:0;bottom:0;left:260px;overflow:auto;z-index:20;
+  background:var(--bg,#06101d);padding:0 20px 40px;
+}
+body.planner-open #appScreen .planner-top-actions{position:sticky;top:0;z-index:5;background:var(--bg,#06101d);padding-top:14px}
+@media(max-width:980px){ body.planner-open #appScreen{left:88px} }
+@media(max-width:680px){ body.planner-open #appScreen{left:0} body.planner-open #dashboardScreen .rr-main{display:none} }
+/* keep the shell sidebar fixed while planner scrolls */
+body.planner-open #dashboardScreen .rr-shell{min-height:100vh}
+/* ============ Cooler topbar greeting ============ */
+.rr-hero-greeting strong{
+  background:linear-gradient(90deg,#38bdf8,#22d3a6 55%,#8b5cf6);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  font-size:20px;letter-spacing:-.01em;
+}
+.rr-hero-greeting small{display:block;margin-top:2px;color:var(--muted,#9fb0c7);font-size:12.5px}
+#topbarDate{color:#7dd3fc;font-weight:600}
+:root[data-theme="light"] #topbarDate{color:#0d6a8c}
 </style>
 </head>
 <body>
@@ -1639,7 +1660,10 @@ body{
     </aside>
     <main class="rr-main">
       <header class="rr-topbar">
-        <div class="rr-topbar-title"><strong id="navUserLabel">RouteRoush</strong><small>Plan smarter. Drive less.</small></div>
+        <div class="rr-topbar-title rr-hero-greeting">
+  <strong id="navUserLabel">RouteRoush</strong>
+  <small id="topbarSub"><span id="topbarDate"></span> · <span id="topbarTagline">Plan smarter. Drive less.</span></small>
+</div>
         <div class="rr-topbar-actions"><button id="themeToggleDash" class="theme-toggle" type="button" title="Toggle Daylight Drive / Midnight Drive">🌙 Midnight Drive</button><span id="dashboardWelcome" style="display:none"></span></div>
       </header>
       <div class="rr-content">
@@ -2596,7 +2620,12 @@ function showDashboardScreen(user,profile){
   const business=profile?.business_name||user?.user_metadata?.business_name||'';
   const displayName=business||[first,last].filter(Boolean).join(' ')||'RouteRoush User';
 
-  navUserLabel.textContent=displayName;
+  const hour=new Date().getHours();
+  const greet = hour<12?'Good morning':hour<18?'Good afternoon':'Good evening';
+  const firstOnly=(first||displayName||'there').split(' ')[0];
+  navUserLabel.textContent=`${greet}, ${firstOnly}`;
+  const td=document.getElementById('topbarDate');
+  if(td)td.textContent=new Date().toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'});
   rrSidebarName.textContent=displayName;
   rrSidebarEmail.textContent=user?.email||'';
   dashboardWelcome.textContent=`Welcome${first?`, ${first}`:''}`;
@@ -2611,8 +2640,14 @@ function showDashboardScreen(user,profile){
 
 function showAppScreen(user){
   loginScreen.style.display='none';
-  dashboardScreen.style.display='none';
+  dashboardScreen.style.display='block';   // keep the shell (sidebar) mounted
   appScreen.style.display='block';
+  document.body.classList.add('planner-open');
+  // reflect planner as the active nav item (New Project builds routes)
+  try{
+    document.querySelectorAll('.rr-side-nav button').forEach(b=>b.classList.remove('active'));
+    navNewProject.classList.add('active');
+  }catch{}
 
   const meta=user?.user_metadata || {};
   const fullName=[meta.first_name,meta.last_name].filter(Boolean).join(' ');
@@ -4000,6 +4035,12 @@ window.addPreferredAddressToRoute=async id=>{
 
 
 function showDashboardTab(tabName){
+  // leaving the planner: drop the planner-open state and hide the map screen
+  if(document.body.classList.contains('planner-open')){
+    document.body.classList.remove('planner-open');
+    appScreen.style.display='none';
+    dashboardScreen.querySelector('.rr-main').style.display='';
+  }
   const views={
     new:newProjectView,
     projects:savedProjectsView,
@@ -4633,7 +4674,9 @@ async function goToDashboardHome(){
   try{const {data}=await supabaseClient.auth.getSession();user=data.session?.user||null;}catch{}
   if(!user){
     // Still logged in on screen; fall back to showing the dashboard shell.
+    document.body.classList.remove('planner-open');
     dashboardScreen.style.display='block';
+    dashboardScreen.querySelector('.rr-main').style.display='';
     appScreen.style.display='none';
     showDashboardTab('new');
     return;
@@ -4645,9 +4688,8 @@ async function goToDashboardHome(){
 }
 backDashboardBtn.onclick=goToDashboardHome;
 document.getElementById('rrSidebarLogo').onclick=()=>{
-  if(appScreen.style.display!=='none'){ goToDashboardHome(); }
-  else { showDashboardTab('new'); }
-  // always scroll the page back to the top so the logo reliably 'goes home'
+  // Always return to the New Project home, closing the planner if it's open.
+  showDashboardTab('new');
   try{ const c=document.querySelector('.rr-content'); (c||window).scrollTo({top:0,behavior:'smooth'}); window.scrollTo({top:0,behavior:'smooth'}); }catch{ window.scrollTo(0,0); }
 };
 saveProfileBtn.onclick=async()=>{

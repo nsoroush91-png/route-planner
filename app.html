@@ -1527,6 +1527,10 @@ body.planner-open #appScreen{
   background:var(--bg,#06101d);padding:0 20px 40px;
 }
 body.planner-open #appScreen .planner-top-actions{position:sticky;top:0;z-index:5;background:var(--bg,#06101d);padding-top:14px}
+/* fill the space next to the sidebar instead of centering (which caused a big gap) */
+body.planner-open #appScreen .layout,
+body.planner-open #appScreen .planner-top-actions{max-width:none;margin-left:0;margin-right:0}
+body.planner-open #appScreen header{max-width:none;margin-left:0;margin-right:0;padding-left:0}
 @media(max-width:980px){ body.planner-open #appScreen{left:88px} }
 @media(max-width:680px){ body.planner-open #appScreen{left:0} body.planner-open #dashboardScreen .rr-main{display:none} }
 /* keep the shell sidebar fixed while planner scrolls */

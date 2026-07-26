@@ -4162,17 +4162,57 @@ window.openCalDay=dateKey=>{
   detail.style.display='block';
   if(!rs.length){body.innerHTML='<div class="note" style="display:block">No routes scheduled this day.</div>';return;}
   body.innerHTML=rs.map(r=>{
-    const stops=(r.day_data&&r.day_data.stops)||[];
-    return `<div class="due-row" style="align-items:flex-start">
-      <div class="who">
-        <b>${esc(r.title||'Route')}</b>
-        <small>${stops.length} stop${stops.length===1?'':'s'}${r.series_id?' · part of a repeating plan':''}</small>
-        <div style="margin-top:6px;font-size:12px;color:var(--muted)">${stops.slice(0,8).map(s=>esc(s.contactName||s.address.split(',')[0])).join(' · ')}${stops.length>8?' …':''}</div>
+    const dd=r.day_data||{};
+    const stops=dd.stops||[];
+    const dpt=dd.depot||null;
+    const weekday=d.getDay();
+    const [sh,sm]=((dd.settings&&dd.settings.start)||'08:00').split(':').map(Number);
+    const startMin=sh*60+sm;
+    const svcDefault=Number(dd.settings&&dd.settings.service)||40;
+
+    // Recompute approximate arrival times along the stored order.
+    let e=0, prev=dpt, timeline='';
+    if(dpt){
+      stops.forEach((s,i)=>{
+        const t=travel(prev,s,e,startMin,weekday);
+        let arrival=startMin+e+t;
+        const earliest=clockToMinutes(s.earliest);
+        const latest=clockToMinutes(s.latest);
+        let wait=0;
+        if(earliest!=null && arrival<earliest){wait=earliest-arrival;arrival=earliest;}
+        const late = latest!=null && arrival>latest;
+        const dur=s.serviceMinutes??svcDefault;
+        const who=esc(s.contactName||s.address.split(',')[0]);
+        timeline+=`<tr>
+          <td style="width:34px;color:var(--muted);font-weight:700">${i+1}</td>
+          <td><b>${fmt(arrival)}</b>${late?' <span style="color:#fda4af">⚠ late</span>':''}</td>
+          <td><b>${who}</b><br><small style="color:var(--muted)">${esc(s.address)}</small></td>
+          <td style="color:var(--muted);white-space:nowrap">${dur} min</td>
+        </tr>`;
+        e = (arrival-startMin) + dur;
+        prev=s;
+      });
+    }else{
+      // No depot stored — list without times.
+      timeline = stops.map((s,i)=>`<tr><td style="width:34px;color:var(--muted);font-weight:700">${i+1}</td><td>—</td><td><b>${esc(s.contactName||s.address.split(',')[0])}</b><br><small style="color:var(--muted)">${esc(s.address)}</small></td><td></td></tr>`).join('');
+    }
+
+    return `<div style="border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap">
+        <div>
+          <b>${esc(r.title||'Route')}</b>
+          <div style="font-size:12px;color:var(--muted)">${stops.length} stop${stops.length===1?'':'s'} · starts ${fmt(startMin)}${r.series_id?' · repeating plan':''}</div>
+        </div>
+        <div class="acts">
+          <button class="secondary" onclick="loadScheduledIntoPlanner('${r.id}')" title="Open in planner">Open</button>
+          <button class="rm" onclick="deleteScheduled('${r.id}',${r.series_id?`'${r.series_id}'`:'null'})">Delete</button>
+        </div>
       </div>
-      <div class="acts">
-        <button class="secondary" onclick="loadScheduledIntoPlanner('${r.id}')" title="Open in planner">Open</button>
-        <button class="rm" onclick="deleteScheduled('${r.id}',${r.series_id?`'${r.series_id}'`:'null'})">Delete</button>
-      </div>
+      <table class="stops-table" style="margin-top:12px">
+        <thead><tr><th style="width:34px">#</th><th>Arrive</th><th>Customer</th><th>Service</th></tr></thead>
+        <tbody>${timeline||'<tr><td colspan="4" style="color:var(--muted)">No stops.</td></tr>'}</tbody>
+      </table>
+      ${dpt?'<p class="sub" style="margin:8px 0 0;font-size:11px">Times are estimates from the saved route, starting at the depot.</p>':''}
     </div>`;
   }).join('');
   detail.scrollIntoView({behavior:'smooth',block:'nearest'});

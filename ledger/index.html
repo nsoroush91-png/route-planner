@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Ledger by Soroush — personal finance and receipt tracking</title>
+<meta name="description" content="A private, single-household personal finance app that imports its owner's own bank transactions and itemizes paper receipts. Read-only. No data sharing." />
+<style>
+  :root {
+    color-scheme: light;
+    --canvas: #f7f4ef;
+    --surface: #ffffff;
+    --line: #e8e2d8;
+    --ink: #171622;
+    --muted: #6b6558;
+    --accent: #5b3df5;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    box-sizing: border-box;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--canvas);
+    color: var(--ink);
+    font-family: "Public Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.6;
+  }
+  .hero { position: relative; overflow: hidden; border-bottom: 1px solid var(--line); }
+  .hero svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .wrap { max-width: 44rem; margin: 0 auto; padding: 0 1.25rem; }
+  .hero .wrap { position: relative; padding-top: 4rem; padding-bottom: 3.5rem; }
+  h1 { font-size: clamp(2rem, 6vw, 2.75rem); letter-spacing: -0.02em; margin: 0 0 .5rem; }
+  .tagline { font-size: 1.125rem; color: var(--muted); margin: 0; max-width: 32rem; }
+  main { padding: 2.5rem 0 4rem; }
+  section { margin-bottom: 2.5rem; }
+  h2 { font-size: 1.1875rem; letter-spacing: -0.01em; margin: 0 0 .5rem; }
+  p { margin: 0 0 .875rem; }
+  ul { margin: 0 0 .875rem; padding-left: 1.125rem; }
+  li { margin-bottom: .375rem; }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 1.25rem 1.375rem;
+  }
+  .label { font-size: .8125rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin-bottom: .25rem; }
+  a { color: var(--accent); }
+  footer { border-top: 1px solid var(--line); padding: 1.5rem 0 3rem; color: var(--muted); font-size: .875rem; }
+  @media (max-width: 480px) { .hero .wrap { padding-top: 2.5rem; } }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <svg viewBox="0 0 1200 400" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+    <defs>
+      <radialGradient id="a" cx="18%" cy="20%" r="60%">
+        <stop offset="0%" stop-color="#5b3df5" stop-opacity="0.34" />
+        <stop offset="100%" stop-color="#5b3df5" stop-opacity="0" />
+      </radialGradient>
+      <radialGradient id="b" cx="85%" cy="30%" r="55%">
+        <stop offset="0%" stop-color="#0fa5a0" stop-opacity="0.26" />
+        <stop offset="100%" stop-color="#0fa5a0" stop-opacity="0" />
+      </radialGradient>
+      <radialGradient id="c" cx="60%" cy="95%" r="55%">
+        <stop offset="0%" stop-color="#e0654a" stop-opacity="0.22" />
+        <stop offset="100%" stop-color="#e0654a" stop-opacity="0" />
+      </radialGradient>
+    </defs>
+    <rect width="1200" height="400" fill="url(#a)" />
+    <rect width="1200" height="400" fill="url(#b)" />
+    <rect width="1200" height="400" fill="url(#c)" />
+  </svg>
+  <div class="wrap">
+    <h1>Ledger</h1>
+    <p class="tagline">
+      A private personal finance tool. It turns “$142 at Walmart” into what was actually
+      bought, by reading the receipt.
+    </p>
+  </div>
+</div>
+
+<main class="wrap">
+
+  <section>
+    <h2>What this application is</h2>
+    <p>
+      Ledger is a personal finance application built and used by one person, Soroush Najafi,
+      for his own household. It is not a commercial service and has no other users. It runs
+      locally on his own computer rather than on a public server.
+    </p>
+    <p>
+      Its purpose is to categorize household spending accurately. Bank records show where
+      money was spent but not what was bought, which makes budgeting inaccurate for shops
+      that sell several categories of goods. Ledger reads the household's own paper and
+      emailed receipts, extracts the individual items, and splits a single purchase across
+      the right budget categories.
+    </p>
+  </section>
+
+  <section>
+    <h2>What data it accesses, and why</h2>
+    <ul>
+      <li>
+        <strong>Transactions</strong>, through Plaid, for the owner's own bank and credit card
+        accounts. Used to record spending, match receipts to the purchases they belong to, and
+        report against a monthly budget.
+      </li>
+      <li>
+        <strong>Account names and the last four digits</strong>, so a receipt can be matched to
+        the card it was paid with.
+      </li>
+    </ul>
+    <p>
+      Access is read-only. The application cannot move money, make payments, or initiate
+      transfers of any kind. It does not request or use identity, balance verification,
+      routing numbers, investments, or income products.
+    </p>
+  </section>
+
+  <section>
+    <h2>How the data is protected</h2>
+    <div class="card">
+      <ul style="margin-bottom:0">
+        <li>Data is stored in a local database file on the owner's own computer. It is not
+          uploaded to any server and is not held by any third party.</li>
+        <li>The Plaid access token is encrypted at rest with AES-256-GCM. The encryption key is
+          held outside the database, in an environment file, so a copy of the database alone
+          cannot be used to reach any bank.</li>
+        <li>The application requires a username and password. Passwords are stored only as a
+          salted scrypt hash and are verified in constant time.</li>
+        <li>Session tokens are stored as hashes, and session cookies are HTTP-only.</li>
+        <li>The web server listens on the local loopback address only, so it is not reachable
+          from any network.</li>
+        <li>Repeated failed sign-in attempts are locked out.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section>
+    <h2>Data sharing and retention</h2>
+    <p>
+      No data is sold, licensed, shared, or otherwise disclosed to anyone. There are no
+      advertisers, no analytics, and no third-party processors beyond Plaid, which supplies
+      the transaction data itself.
+    </p>
+    <p>
+      Data is kept for as long as it is useful for household budgeting and tax records, and can
+      be deleted at any time by the owner. Bank connections can be disconnected from within the
+      application, which revokes the access token at Plaid, or from
+      <a href="https://my.plaid.com">my.plaid.com</a> and the bank's own website.
+    </p>
+  </section>
+
+  <section>
+    <h2>Contact</h2>
+    <div class="card">
+      <div class="label">Owner and operator</div>
+      <p style="margin-bottom:.75rem">Soroush Najafi, Arizona, United States</p>
+      <div class="label">Email for privacy and security enquiries</div>
+      <p style="margin-bottom:0"><a href="mailto:n.soroush91@gmail.com">n.soroush91@gmail.com</a></p>
+    </div>
+  </section>
+
+</main>
+
+<footer class="wrap">
+  Ledger is a personal, non-commercial application. Bank data is provided by Plaid and accessed
+  read-only with the account holder's own consent.
+</footer>
+
+</body>
+</html>

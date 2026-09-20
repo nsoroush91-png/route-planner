@@ -152,10 +152,18 @@
       the transaction data itself.
     </p>
     <p>
-      Data is kept for as long as it is useful for household budgeting and tax records, and can
-      be deleted at any time by the owner. Bank connections can be disconnected from within the
-      application, which revokes the access token at Plaid, or from
-      <a href="https://my.plaid.com">my.plaid.com</a> and the bank's own website.
+      A retention limit is enforced by the application itself, not just written down. Past the
+      chosen period, receipt line items and stored receipt images are deleted automatically. The
+      transactions and their category totals are kept, so historical budgets remain intact while
+      the itemized personal detail does not accumulate indefinitely. The check runs daily and can
+      also be applied on demand.
+    </p>
+    <p>
+      Everything can also be deleted at any time by the owner: individual transactions, receipts,
+      accounts, or the bank connection itself. Disconnecting a bank revokes the access token at
+      Plaid. It can equally be revoked from <a href="https://my.plaid.com">my.plaid.com</a> or the
+      bank's own website. No other person's data is ever held, so there are no third-party
+      deletion requests to service.
     </p>
   </section>
 

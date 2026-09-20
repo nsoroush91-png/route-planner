@@ -130,10 +130,16 @@
           cannot be used to reach any bank.</li>
         <li>The application requires a username and password. Passwords are stored only as a
           salted scrypt hash and are verified in constant time.</li>
+        <li>Two-step verification is enabled: signing in also requires a time-based one-time
+          code (TOTP, RFC 6238) from an authenticator app. The authenticator secret is itself
+          encrypted at rest, and a session that has passed the password but not the code
+          unlocks nothing.</li>
         <li>Session tokens are stored as hashes, and session cookies are HTTP-only.</li>
         <li>The web server listens on the local loopback address only, so it is not reachable
           from any network.</li>
-        <li>Repeated failed sign-in attempts are locked out.</li>
+        <li>Repeated failed sign-in attempts are rate limited and then locked out, for both
+          passwords and one-time codes.</li>
+        <li>Single-use recovery codes are stored hashed, never in readable form.</li>
       </ul>
     </div>
   </section>
